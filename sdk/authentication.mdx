@@ -1,0 +1,149 @@
+---
+title: Authentication
+description: How the EnergiaPro SDK handles authentication and token management
+---
+
+## Overview
+
+The EnergiaPro SDK handles authentication automatically. You provide your username and secret key once when creating the client, and the SDK manages API tokens behind the scenes.
+
+## How It Works
+
+<Steps>
+  <Step title="Provide credentials">
+    When you create an `EnergiaPro` client, you supply your username and secret key:
+
+    ```rust
+    let energiapro = EnergiaPro::new("your-username", "your-secret-key")?;
+    ```
+  </Step>
+
+  <Step title="Automatic token exchange">
+    On your first API request, the SDK:
+    - Hashes your secret key using bcrypt
+    - Exchanges your credentials for an API token
+    - Caches the token for subsequent requests
+  </Step>
+
+  <Step title="Automatic token refresh">
+    When a token expires, the SDK:
+    - Detects the authentication failure
+    - Automatically requests a new token
+    - Retries your original request
+    - All of this happens transparently
+  </Step>
+</Steps>
+
+## Credential Validation
+
+The SDK performs client-side validation when you create a client:
+
+```rust
+use energiapro::{EnergiaPro, EnergiaProError};
+
+#[tokio::main]
+async fn main() -> Result<(), EnergiaProError> {
+    // This will fail - empty username
+    let result = EnergiaPro::new("", "secret_key");
+    assert!(matches!(result, Err(EnergiaProError::InvalidArgument(_))));
+
+    // This will fail - empty secret key
+    let result = EnergiaPro::new("username", "");
+    assert!(matches!(result, Err(EnergiaProError::InvalidArgument(_))));
+
+    // This will succeed
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+    Ok(())
+}
+```
+
+<Warning>
+  Usernames and secret keys cannot be empty or contain only whitespace. The SDK validates these requirements at client creation time.
+</Warning>
+
+## Token Storage
+
+Tokens are stored in memory and shared across all resource operations using the same client instance:
+
+```rust
+let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+// First request triggers authentication
+let installations = energiapro.installations.list("client-id").await?;
+
+// Subsequent requests reuse the cached token
+let measurements = energiapro
+    .measurements
+    .all("client-id", "installation-id", MeasurementScope::LpnJson)
+    .await?;
+```
+
+Tokens are never persisted to disk - they exist only for the lifetime of the `EnergiaPro` instance.
+
+## Error Handling
+
+Authentication errors are represented by the `EnergiaProError::Api` variant:
+
+```rust
+use energiapro::{EnergiaPro, EnergiaProError, ApiErrorCode};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    match energiapro.installations.list("client-id").await {
+        Ok(installations) => {
+            println!("Found {} installations", installations.len());
+        }
+        Err(EnergiaProError::Api { code, message }) => {
+            match code {
+                ApiErrorCode::TokenInvalid => {
+                    eprintln!("Authentication failed: {}", message);
+                }
+                ApiErrorCode::Unknown(code) => {
+                    eprintln!("API error {}: {}", code, message);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Request failed: {}", e);
+        }
+    }
+
+    Ok(())
+}
+```
+
+## Thread Safety
+
+The `EnergiaPro` client and all its resources are thread-safe and can be shared across tasks:
+
+```rust
+use std::sync::Arc;
+use energiapro::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = Arc::new(EnergiaPro::new("username", "secret_key")?);
+
+    let energiapro_clone = Arc::clone(&energiapro);
+    let handle = tokio::spawn(async move {
+        energiapro_clone
+            .measurements
+            .all("client-id", "installation-id", MeasurementScope::LpnJson)
+            .await
+    });
+
+    let installations = energiapro.installations.list("client-id").await?;
+    let measurements = handle.await??;
+
+    println!("Installations: {}", installations.len());
+    println!("Measurements: {}", measurements.len());
+
+    Ok(())
+}
+```
+
+<Note>
+  Token refresh is protected by internal synchronization, ensuring only one authentication request is made even when multiple tasks attempt API calls simultaneously.
+</Note>

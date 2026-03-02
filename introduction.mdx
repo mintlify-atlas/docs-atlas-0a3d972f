@@ -1,0 +1,88 @@
+---
+title: Introduction
+description: A fast Rust toolkit for the EnergiaPro API, featuring a powerful SDK and CLI for seamless data integration
+---
+
+## Welcome to EnergiaPro Toolkit
+
+EnergiaPro Toolkit is a fast, reliable Rust-based solution for integrating with the EnergiaPro API. Whether you're building applications or running quick data exports, this toolkit provides everything you need to work with energy measurement data efficiently.
+
+<CardGroup cols={2}>
+  <Card
+    title="SDK for developers"
+    icon="code"
+    href="/api-reference/sdk/overview"
+  >
+    Seamlessly integrate EnergiaPro API into your Rust applications with automatic authentication and high-level abstractions
+  </Card>
+  <Card
+    title="CLI for quick tasks"
+    icon="terminal"
+    href="/api-reference/cli/overview"
+  >
+    Export installations and measurements directly from your terminal in CSV, JSON, JSONL, or Parquet formats
+  </Card>
+  <Card
+    title="Quick start guide"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get up and running in minutes with both the SDK and CLI
+  </Card>
+  <Card
+    title="API reference"
+    icon="book"
+    href="/api-reference/overview"
+  >
+    Comprehensive documentation for all SDK methods and CLI commands
+  </Card>
+</CardGroup>
+
+## Key features
+
+<AccordionGroup>
+  <Accordion title="Automatic authentication" icon="lock">
+    The SDK handles the complete authentication lifecycle automatically. It exchanges your username and secret key for API tokens, caches them securely, and refreshes them as needed—so you can focus on your application logic.
+  </Accordion>
+  
+  <Accordion title="High-level abstractions" icon="layer-group">
+    Work with intuitive, ergonomic functions instead of raw HTTP requests. Fetch installations and measurements with simple, type-safe method calls that return structured data.
+  </Accordion>
+  
+  <Accordion title="Multiple export formats" icon="file-export">
+    Export your data in the format that best suits your workflow: CSV for spreadsheets, JSON/JSONL for applications, or Parquet for data analysis and warehousing.
+  </Accordion>
+  
+  <Accordion title="Async-first design" icon="bolt">
+    Built on Tokio, the toolkit is designed for high-performance concurrent operations. Fetch multiple installations or date ranges in parallel with ease.
+  </Accordion>
+  
+  <Accordion title="Flexible configuration" icon="sliders">
+    Customize timeouts, base URLs, and other options to match your infrastructure. Use environment variables or command-line flags for maximum flexibility.
+  </Accordion>
+  
+  <Accordion title="Type-safe" icon="shield-check">
+    Leverage Rust's powerful type system to catch errors at compile time. All API responses are parsed into strongly-typed structs with comprehensive error handling.
+  </Accordion>
+</AccordionGroup>
+
+## Use cases
+
+The EnergiaPro Toolkit is designed for:
+
+- **Application integration**: Build energy monitoring dashboards, analytics platforms, or IoT applications
+- **Data pipelines**: Export measurements to data warehouses, time-series databases, or analytics tools
+- **Automation**: Script routine tasks like daily exports, data backups, or monitoring alerts
+- **Data analysis**: Extract data for research, reporting, or machine learning workflows
+
+## Getting help
+
+If you encounter issues or have questions:
+
+- Check the [Quick Start Guide](/quickstart) for common setup tasks
+- Review the [API Reference](/api-reference/overview) for detailed documentation
+- Report bugs or request features on [GitHub](https://github.com/nhedger/energiapro)
+
+<Note>
+  This is an independent open-source project and is not affiliated with, endorsed by, or sponsored by ENERGIAPRO SA.
+</Note>

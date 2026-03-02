@@ -1,0 +1,350 @@
+---
+title: MeasurementsResource
+description: Resource for measurement-related API operations
+---
+
+## Overview
+
+The `MeasurementsResource` provides methods for retrieving measurement data from the EnergiaPro API. Access it through the `measurements` field on the `EnergiaPro` client.
+
+## Methods
+
+### get
+
+Retrieve measurements for a given installation and optional date range.
+
+```rust
+pub async fn get(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    from: Option<impl DateInput>,
+    to: Option<impl DateInput>,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+<ParamField path="client_id" type="impl AsRef<str>" required>
+  The client identifier.
+</ParamField>
+
+<ParamField path="installation_id" type="impl AsRef<str>" required>
+  The installation identifier.
+</ParamField>
+
+<ParamField path="scope" type="impl Into<MeasurementScope>" required>
+  Measurement scope (e.g., `MeasurementScope::LpnJson`).
+</ParamField>
+
+<ParamField path="from" type="Option<impl DateInput>">
+  Optional start date for filtering measurements.
+</ParamField>
+
+<ParamField path="to" type="Option<impl DateInput>">
+  Optional end date for filtering measurements.
+</ParamField>
+
+<ResponseField name="Result" type="Result<Vec<Measurement>, EnergiaProError>">
+  Returns a vector of `Measurement` objects on success.
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let measurements = client.measurements.get(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson,
+        Some("2024-01-01"),
+        Some("2024-01-31")
+    ).await?;
+    
+    Ok(())
+}
+```
+
+### all
+
+Retrieve all measurements for a given installation.
+
+```rust
+pub async fn all(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+<ParamField path="client_id" type="impl AsRef<str>" required>
+  The client identifier.
+</ParamField>
+
+<ParamField path="installation_id" type="impl AsRef<str>" required>
+  The installation identifier.
+</ParamField>
+
+<ParamField path="scope" type="impl Into<MeasurementScope>" required>
+  Measurement scope (e.g., `MeasurementScope::LpnJson`).
+</ParamField>
+
+<ResponseField name="Result" type="Result<Vec<Measurement>, EnergiaProError>">
+  Returns a vector of all `Measurement` objects for the installation.
+</ResponseField>
+
+<Note>
+  This method retrieves all measurements for the specified installation, which may result in a large amount of data being returned. Consider using the other methods in this resource to filter measurements by date or date range if you do not need the entire dataset.
+</Note>
+
+#### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let measurements = client.measurements.all(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson
+    ).await?;
+    
+    println!("Retrieved {} measurements", measurements.len());
+    
+    Ok(())
+}
+```
+
+### for_date
+
+Retrieve measurements for a given installation and date.
+
+```rust
+pub async fn for_date(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    date: impl DateInput,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+<ParamField path="client_id" type="impl AsRef<str>" required>
+  The client identifier.
+</ParamField>
+
+<ParamField path="installation_id" type="impl AsRef<str>" required>
+  The installation identifier.
+</ParamField>
+
+<ParamField path="scope" type="impl Into<MeasurementScope>" required>
+  Measurement scope (e.g., `MeasurementScope::LpnJson`).
+</ParamField>
+
+<ParamField path="date" type="impl DateInput" required>
+  The date to retrieve measurements for (format: `YYYY-MM-DD` or `chrono::NaiveDate`).
+</ParamField>
+
+<ResponseField name="Result" type="Result<Vec<Measurement>, EnergiaProError>">
+  Returns a vector of `Measurement` objects for the specified date.
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let measurements = client.measurements.for_date(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson,
+        "2024-04-01"
+    ).await?;
+    
+    Ok(())
+}
+```
+
+### for_date_range
+
+Retrieve measurements for an installation and date range.
+
+```rust
+pub async fn for_date_range(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    from: impl DateInput,
+    to: impl DateInput,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+<ParamField path="client_id" type="impl AsRef<str>" required>
+  The client identifier.
+</ParamField>
+
+<ParamField path="installation_id" type="impl AsRef<str>" required>
+  The installation identifier.
+</ParamField>
+
+<ParamField path="scope" type="impl Into<MeasurementScope>" required>
+  Measurement scope (e.g., `MeasurementScope::LpnJson`).
+</ParamField>
+
+<ParamField path="from" type="impl DateInput" required>
+  Start date for the range (format: `YYYY-MM-DD` or `chrono::NaiveDate`).
+</ParamField>
+
+<ParamField path="to" type="impl DateInput" required>
+  End date for the range (format: `YYYY-MM-DD` or `chrono::NaiveDate`).
+</ParamField>
+
+<ResponseField name="Result" type="Result<Vec<Measurement>, EnergiaProError>">
+  Returns a vector of `Measurement` objects within the specified date range.
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let measurements = client.measurements.for_date_range(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson,
+        "2024-01-01",
+        "2024-01-31"
+    ).await?;
+    
+    Ok(())
+}
+```
+
+### since
+
+Retrieve measurements for an installation since a given date.
+
+```rust
+pub async fn since(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    date: impl DateInput,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+<ParamField path="client_id" type="impl AsRef<str>" required>
+  The client identifier.
+</ParamField>
+
+<ParamField path="installation_id" type="impl AsRef<str>" required>
+  The installation identifier.
+</ParamField>
+
+<ParamField path="scope" type="impl Into<MeasurementScope>" required>
+  Measurement scope (e.g., `MeasurementScope::LpnJson`).
+</ParamField>
+
+<ParamField path="date" type="impl DateInput" required>
+  Start date (format: `YYYY-MM-DD` or `chrono::NaiveDate`).
+</ParamField>
+
+<ResponseField name="Result" type="Result<Vec<Measurement>, EnergiaProError>">
+  Returns a vector of `Measurement` objects from the specified date onward.
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let measurements = client.measurements.since(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson,
+        "2024-01-01"
+    ).await?;
+    
+    Ok(())
+}
+```
+
+### up_to
+
+Retrieve measurements for an installation up to a given date.
+
+```rust
+pub async fn up_to(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    date: impl DateInput,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+<ParamField path="client_id" type="impl AsRef<str>" required>
+  The client identifier.
+</ParamField>
+
+<ParamField path="installation_id" type="impl AsRef<str>" required>
+  The installation identifier.
+</ParamField>
+
+<ParamField path="scope" type="impl Into<MeasurementScope>" required>
+  Measurement scope (e.g., `MeasurementScope::LpnJson`).
+</ParamField>
+
+<ParamField path="date" type="impl DateInput" required>
+  End date (format: `YYYY-MM-DD` or `chrono::NaiveDate`).
+</ParamField>
+
+<ResponseField name="Result" type="Result<Vec<Measurement>, EnergiaProError>">
+  Returns a vector of `Measurement` objects up to and including the specified date.
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let measurements = client.measurements.up_to(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson,
+        "2024-01-31"
+    ).await?;
+    
+    Ok(())
+}
+```
+
+## Related Types
+
+See the [Measurement model](/api/models#measurement) for the structure of returned data.

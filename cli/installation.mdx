@@ -1,0 +1,104 @@
+---
+title: Installation
+description: Install the EnergiaPro CLI via Homebrew or Cargo
+---
+
+The EnergiaPro CLI provides a fast, convenient way to interact with the EnergiaPro API from your terminal. Choose from two installation methods based on your preference.
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="Homebrew (macOS/Linux)">
+    The recommended installation method for macOS and Linux users:
+
+    <Steps>
+      <Step title="Add the tap">
+        Add the EnergiaPro Homebrew tap to your system:
+
+        ```bash
+        brew tap nhedger/energiapro
+        ```
+      </Step>
+
+      <Step title="Install the CLI">
+        Install the `energiapro` CLI tool:
+
+        ```bash
+        brew install energiapro
+        ```
+      </Step>
+
+      <Step title="Verify installation">
+        Confirm the installation by checking the version:
+
+        ```bash
+        energiapro --version
+        ```
+
+        You should see output like:
+
+        ```
+        energiapro 0.1.0
+        ```
+      </Step>
+    </Steps>
+
+    ### Updating
+
+    To update to the latest version:
+
+    ```bash
+    brew update
+    brew upgrade energiapro
+    ```
+  </Tab>
+
+  <Tab title="Cargo (Cross-platform)">
+    If you have Rust installed, you can install directly from crates.io:
+
+    <Steps>
+      <Step title="Install via Cargo">
+        Use `cargo install` to download and build the CLI:
+
+        ```bash
+        cargo install energiapro-cli
+        ```
+
+        This will compile the binary and place it in your Cargo bin directory (typically `~/.cargo/bin`).
+      </Step>
+
+      <Step title="Verify installation">
+        Check that the CLI is available:
+
+        ```bash
+        energiapro --version
+        ```
+      </Step>
+    </Steps>
+
+    <Tip>
+      Make sure `~/.cargo/bin` is in your system's `PATH` to run the CLI from anywhere.
+    </Tip>
+
+    ### Updating
+
+    To update to the latest version:
+
+    ```bash
+    cargo install energiapro-cli --force
+    ```
+  </Tab>
+</Tabs>
+
+## System Requirements
+
+- **Homebrew**: macOS 10.15+ or Linux with Homebrew installed
+- **Cargo**: Rust 1.70+ (for building from source)
+
+## Next Steps
+
+After installation, you'll need to authenticate with the EnergiaPro API:
+
+<Card title="Authentication" icon="key" href="/cli/authentication">
+  Learn how to configure your API credentials
+</Card>

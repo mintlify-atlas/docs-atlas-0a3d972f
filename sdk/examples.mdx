@@ -1,0 +1,416 @@
+---
+title: Examples
+description: Real-world usage examples for the EnergiaPro SDK
+---
+
+## Basic Usage
+
+### Initialize and Fetch Data
+
+```rust
+use energiapro::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create client
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    // Get installations
+    let installations = energiapro.installations.list("client-id").await?;
+    println!("Found {} installations", installations.len());
+
+    // Get measurements for first installation
+    if let Some(installation) = installations.first() {
+        let measurements = energiapro
+            .measurements
+            .all("client-id", &installation.id, MeasurementScope::LpnJson)
+            .await?;
+        println!("Found {} measurements", measurements.len());
+    }
+
+    Ok(())
+}
+```
+
+## Daily Consumption Report
+
+Generate a daily consumption report for a specific date:
+
+```rust
+use energiapro::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    let measurements = energiapro
+        .measurements
+        .for_date(
+            "client-id",
+            "installation-id",
+            MeasurementScope::LpnJson,
+            "2024-01-15",
+        )
+        .await?;
+
+    let total_kwh: f64 = measurements.iter().map(|m| m.consumption_kwh).sum();
+    let total_m3: f64 = measurements.iter().map(|m| m.consumption_m3).sum();
+
+    println!("Daily Report for 2024-01-15");
+    println!("============================");
+    println!("Total measurements: {}", measurements.len());
+    println!("Total consumption: {:.2} kWh", total_kwh);
+    println!("Total volume: {:.2} m³", total_m3);
+
+    if let Some(first) = measurements.first() {
+        if let Some(last) = measurements.last() {
+            let meter_change = last.index_m3 - first.index_m3;
+            println!("Meter change: {:.2} m³", meter_change);
+        }
+    }
+
+    Ok(())
+}
+```
+
+## Monthly Analysis
+
+Analyze consumption patterns for a month:
+
+```rust
+use energiapro::{EnergiaPro, MeasurementScope};
+use std::collections::HashMap;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    let measurements = energiapro
+        .measurements
+        .for_date_range(
+            "client-id",
+            "installation-id",
+            MeasurementScope::LpnJson,
+            "2024-01-01",
+            "2024-01-31",
+        )
+        .await?;
+
+    // Group by day
+    let mut daily_consumption: HashMap<String, f64> = HashMap::new();
+    for measurement in &measurements {
+        let date = measurement.timestamp.split(' ').next().unwrap_or("");
+        *daily_consumption.entry(date.to_string()).or_insert(0.0) += measurement.consumption_kwh;
+    }
+
+    // Find statistics
+    let total: f64 = daily_consumption.values().sum();
+    let avg = total / daily_consumption.len() as f64;
+    let max = daily_consumption.values().fold(0.0_f64, |a, &b| a.max(b));
+    let min = daily_consumption.values().fold(f64::MAX, |a, &b| a.min(b));
+
+    println!("January 2024 Analysis");
+    println!("====================");
+    println!("Total consumption: {:.2} kWh", total);
+    println!("Average daily: {:.2} kWh", avg);
+    println!("Peak day: {:.2} kWh", max);
+    println!("Minimum day: {:.2} kWh", min);
+    println!("\nDaily breakdown:");
+
+    let mut days: Vec<_> = daily_consumption.iter().collect();
+    days.sort_by_key(|(date, _)| *date);
+
+    for (date, consumption) in days {
+        println!("  {}: {:.2} kWh", date, consumption);
+    }
+
+    Ok(())
+}
+```
+
+## Multi-Installation Dashboard
+
+Fetch data for multiple installations concurrently:
+
+```rust
+use energiapro::{EnergiaPro, MeasurementScope};
+use std::sync::Arc;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = Arc::new(EnergiaPro::new("username", "secret_key")?);
+
+    // Get all installations
+    let installations = energiapro.installations.list("client-id").await?;
+
+    // Fetch measurements for all installations concurrently
+    let mut handles = vec![];
+
+    for installation in installations {
+        let energiapro = Arc::clone(&energiapro);
+        let installation_id = installation.id.clone();
+
+        let handle = tokio::spawn(async move {
+            let measurements = energiapro
+                .measurements
+                .for_date(
+                    "client-id",
+                    &installation_id,
+                    MeasurementScope::LpnJson,
+                    "2024-01-15",
+                )
+                .await?;
+
+            let total_kwh: f64 = measurements.iter().map(|m| m.consumption_kwh).sum();
+            Ok::<_, Box<dyn std::error::Error + Send + Sync>>((installation_id, total_kwh))
+        });
+
+        handles.push(handle);
+    }
+
+    // Wait for all results
+    println!("Consumption Summary for 2024-01-15");
+    println!("==================================");
+
+    for handle in handles {
+        match handle.await? {
+            Ok((installation_id, total)) => {
+                println!("  {}: {:.2} kWh", installation_id, total);
+            }
+            Err(e) => {
+                eprintln!("  Error fetching data: {}", e);
+            }
+        }
+    }
+
+    Ok(())
+}
+```
+
+## Custom Timeout Configuration
+
+Use custom client options for longer-running queries:
+
+```rust
+use energiapro::{EnergiaPro, ClientOptions, MeasurementScope};
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create client with 2-minute timeout
+    let options = ClientOptions::default()
+        .with_timeout(Duration::from_secs(120));
+
+    let energiapro = EnergiaPro::with_options(
+        "username",
+        "secret_key",
+        options,
+    )?;
+
+    // Fetch large dataset
+    let measurements = energiapro
+        .measurements
+        .for_date_range(
+            "client-id",
+            "installation-id",
+            MeasurementScope::LpnJson,
+            "2024-01-01",
+            "2024-12-31",
+        )
+        .await?;
+
+    println!("Retrieved {} measurements for 2024", measurements.len());
+
+    Ok(())
+}
+```
+
+## Error Handling Best Practices
+
+Robust error handling for production applications:
+
+```rust
+use energiapro::{EnergiaPro, EnergiaProError, ApiErrorCode, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    match fetch_measurements(&energiapro).await {
+        Ok(measurements) => {
+            println!("Successfully retrieved {} measurements", measurements.len());
+        }
+        Err(e) => {
+            eprintln!("Failed to fetch measurements: {}", e);
+            std::process::exit(1);
+        }
+    }
+
+    Ok(())
+}
+
+async fn fetch_measurements(
+    energiapro: &EnergiaPro,
+) -> Result<Vec<energiapro::Measurement>, EnergiaProError> {
+    match energiapro
+        .measurements
+        .for_date(
+            "client-id",
+            "installation-id",
+            MeasurementScope::LpnJson,
+            "2024-01-15",
+        )
+        .await
+    {
+        Ok(measurements) => Ok(measurements),
+        Err(EnergiaProError::InvalidArgument(msg)) => {
+            eprintln!("Configuration error: {}", msg);
+            Err(EnergiaProError::InvalidArgument(msg))
+        }
+        Err(EnergiaProError::Api { code, message }) => {
+            match code {
+                ApiErrorCode::TokenInvalid => {
+                    eprintln!("Authentication failed. Please check your credentials.");
+                }
+                ApiErrorCode::Unknown(code) => {
+                    eprintln!("API returned error {}: {}", code, message);
+                }
+            }
+            Err(EnergiaProError::Api { code, message })
+        }
+        Err(EnergiaProError::Http(err)) => {
+            if err.is_timeout() {
+                eprintln!("Request timed out. Try increasing the timeout or using a smaller date range.");
+            } else if err.is_connect() {
+                eprintln!("Connection failed. Please check your network connection.");
+            } else {
+                eprintln!("HTTP error: {}", err);
+            }
+            Err(EnergiaProError::Http(err))
+        }
+        Err(e) => {
+            eprintln!("Unexpected error: {}", e);
+            Err(e)
+        }
+    }
+}
+```
+
+## Peak Hours Analysis
+
+Identify peak consumption hours:
+
+```rust
+use energiapro::{EnergiaPro, MeasurementScope};
+use std::collections::HashMap;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    let measurements = energiapro
+        .measurements
+        .for_date_range(
+            "client-id",
+            "installation-id",
+            MeasurementScope::LpnJson,
+            "2024-01-01",
+            "2024-01-31",
+        )
+        .await?;
+
+    // Group by hour of day
+    let mut hourly_consumption: HashMap<u32, Vec<f64>> = HashMap::new();
+
+    for measurement in measurements {
+        // Parse hour from timestamp like "2024-01-15 14:30:00"
+        if let Some(time_part) = measurement.timestamp.split(' ').nth(1) {
+            if let Some(hour_str) = time_part.split(':').next() {
+                if let Ok(hour) = hour_str.parse::<u32>() {
+                    hourly_consumption
+                        .entry(hour)
+                        .or_insert_with(Vec::new)
+                        .push(measurement.consumption_kwh);
+                }
+            }
+        }
+    }
+
+    // Calculate average for each hour
+    println!("Average Consumption by Hour");
+    println!("===========================");
+
+    for hour in 0..24 {
+        if let Some(values) = hourly_consumption.get(&hour) {
+            let avg: f64 = values.iter().sum::<f64>() / values.len() as f64;
+            println!("  {:02}:00 - {:.2} kWh (avg over {} readings)", hour, avg, values.len());
+        }
+    }
+
+    // Find peak hour
+    let peak_hour = hourly_consumption
+        .iter()
+        .max_by(|(_, a), (_, b)| {
+            let avg_a = a.iter().sum::<f64>() / a.len() as f64;
+            let avg_b = b.iter().sum::<f64>() / b.len() as f64;
+            avg_a.partial_cmp(&avg_b).unwrap()
+        });
+
+    if let Some((hour, values)) = peak_hour {
+        let avg = values.iter().sum::<f64>() / values.len() as f64;
+        println!("\nPeak hour: {:02}:00 with average {:.2} kWh", hour, avg);
+    }
+
+    Ok(())
+}
+```
+
+## Export to CSV
+
+Export measurements to a CSV file:
+
+```rust
+use energiapro::{EnergiaPro, MeasurementScope};
+use std::fs::File;
+use std::io::Write;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    let measurements = energiapro
+        .measurements
+        .for_date_range(
+            "client-id",
+            "installation-id",
+            MeasurementScope::LpnJson,
+            "2024-01-01",
+            "2024-01-31",
+        )
+        .await?;
+
+    let mut file = File::create("measurements.csv")?;
+    
+    // Write CSV header
+    writeln!(
+        file,
+        "timestamp,installation_id,index_m3,consumption_m3,consumption_kwh"
+    )?;
+
+    // Write data rows
+    for measurement in measurements {
+        writeln!(
+            file,
+            "{},{},{:.2},{:.2},{:.2}",
+            measurement.timestamp,
+            measurement.installation_id,
+            measurement.index_m3,
+            measurement.consumption_m3,
+            measurement.consumption_kwh
+        )?;
+    }
+
+    println!("Exported measurements to measurements.csv");
+    Ok(())
+}
+```

@@ -1,0 +1,135 @@
+---
+title: Authentication
+description: Configure API credentials for the EnergiaPro CLI
+---
+
+The EnergiaPro CLI requires valid API credentials to interact with the EnergiaPro API. You can provide credentials via environment variables or command-line flags.
+
+## Required Credentials
+
+Two pieces of information are required for authentication:
+
+- **Username**: Your EnergiaPro API username
+- **Secret Key**: Your EnergiaPro API secret key
+
+<Warning>
+  Never commit your API credentials to version control or share them publicly. Treat your secret key like a password.
+</Warning>
+
+## Authentication Methods
+
+### Environment Variables (Recommended)
+
+The most convenient method is to set environment variables that the CLI will automatically detect:
+
+```bash
+export ENERGIAPRO_USERNAME="your-username"
+export ENERGIAPRO_SECRET_KEY="your-secret-key"
+```
+
+Add these to your shell configuration file (`~/.bashrc`, `~/.zshrc`, etc.) to persist them across sessions:
+
+```bash ~/.zshrc
+# EnergiaPro API credentials
+export ENERGIAPRO_USERNAME="your-username"
+export ENERGIAPRO_SECRET_KEY="your-secret-key"
+```
+
+<Tip>
+  After adding to your shell config, reload it with `source ~/.zshrc` (or your shell's config file).
+</Tip>
+
+### Command-Line Flags
+
+You can also provide credentials directly via flags:
+
+```bash
+energiapro installations CLIENT_ID \
+  --username "your-username" \
+  --secret-key "your-secret-key"
+```
+
+Short flag versions are also available:
+
+```bash
+energiapro installations CLIENT_ID -u "your-username" -k "your-secret-key"
+```
+
+<Note>
+  Command-line flags take precedence over environment variables if both are provided.
+</Note>
+
+## Optional Configuration
+
+### Custom Base URL
+
+If you need to use a different API endpoint, set the base URL:
+
+**Via environment variable:**
+
+```bash
+export ENERGIAPRO_BASE_URL="https://custom-api.example.com"
+```
+
+**Via command-line flag:**
+
+```bash
+energiapro installations CLIENT_ID --base-url "https://custom-api.example.com"
+```
+
+### HTTP Timeout
+
+By default, requests timeout after 30 seconds. Adjust this if needed:
+
+```bash
+energiapro measurements CLIENT_ID INSTALLATION_ID --timeout-secs 60
+```
+
+## Verification
+
+Test your credentials by fetching installations:
+
+```bash
+energiapro installations YOUR_CLIENT_ID
+```
+
+If authentication succeeds, you'll see a table of installations. If it fails, you'll receive an error message indicating the issue:
+
+```
+error: missing username: pass --username or set ENERGIAPRO_USERNAME
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Missing username error">
+    Ensure `ENERGIAPRO_USERNAME` is set or pass `--username` flag:
+
+    ```bash
+    echo $ENERGIAPRO_USERNAME  # Should print your username
+    ```
+  </Accordion>
+
+  <Accordion title="Missing secret key error">
+    Ensure `ENERGIAPRO_SECRET_KEY` is set or pass `--secret-key` flag:
+
+    ```bash
+    echo $ENERGIAPRO_SECRET_KEY  # Should print your secret key
+    ```
+  </Accordion>
+
+  <Accordion title="Authentication failed">
+    Verify that your credentials are correct and haven't expired. Contact your EnergiaPro account administrator if issues persist.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Available Commands" icon="terminal" href="/cli/commands">
+    Explore all CLI commands and their options
+  </Card>
+  <Card title="Examples" icon="code" href="/cli/examples">
+    See real-world usage examples
+  </Card>
+</CardGroup>

@@ -1,0 +1,125 @@
+---
+title: ClientOptions
+description: Configuration options for the EnergiaPro API client
+---
+
+## Overview
+
+The `ClientOptions` struct allows you to customize the networking behavior of the EnergiaPro client, including the base URL and request timeout.
+
+## Fields
+
+<ResponseField name="base_url" type="String">
+  Base URL for requests to the EnergiaPro API.
+  
+  **Default:** `"https://web2.holdigaz.ch/espace-client-api/api"`
+</ResponseField>
+
+<ResponseField name="timeout" type="Duration">
+  Timeout for requests to the EnergiaPro API.
+  
+  **Default:** `Duration::from_secs(30)` (30 seconds)
+</ResponseField>
+
+## Methods
+
+### default
+
+Create a `ClientOptions` instance with default values.
+
+```rust
+impl Default for ClientOptions {
+    fn default() -> Self
+}
+```
+
+<ResponseField name="Result" type="ClientOptions">
+  Returns a `ClientOptions` instance with:
+  - `base_url`: `"https://web2.holdigaz.ch/espace-client-api/api"`
+  - `timeout`: `Duration::from_secs(30)`
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::ClientOptions;
+
+let options = ClientOptions::default();
+```
+
+### with_base_url
+
+Set a custom base URL for requests to the EnergiaPro API.
+
+```rust
+pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self
+```
+
+<ParamField path="base_url" type="impl Into<String>" required>
+  Custom base URL for API requests. Must use HTTPS.
+</ParamField>
+
+<ResponseField name="Result" type="ClientOptions">
+  Returns `self` for method chaining.
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::ClientOptions;
+
+let options = ClientOptions::default()
+    .with_base_url("https://api.custom-domain.com/v1");
+```
+
+### with_timeout
+
+Set a custom timeout for requests to the EnergiaPro API.
+
+```rust
+pub fn with_timeout(mut self, timeout: Duration) -> Self
+```
+
+<ParamField path="timeout" type="Duration" required>
+  Custom timeout duration for API requests.
+</ParamField>
+
+<ResponseField name="Result" type="ClientOptions">
+  Returns `self` for method chaining.
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::ClientOptions;
+use std::time::Duration;
+
+let options = ClientOptions::default()
+    .with_timeout(Duration::from_secs(60));
+```
+
+## Complete Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, ClientOptions};
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create custom options with 60-second timeout
+    let options = ClientOptions::default()
+        .with_timeout(Duration::from_secs(60));
+    
+    // Create client with custom options
+    let client = EnergiaPro::with_options(
+        "username",
+        "secret_key",
+        options
+    )?;
+    
+    // Use the client...
+    let installations = client.installations.list("client_id").await?;
+    
+    Ok(())
+}
+```

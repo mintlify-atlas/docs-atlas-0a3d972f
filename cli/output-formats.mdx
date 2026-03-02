@@ -1,0 +1,283 @@
+---
+title: Output Formats
+description: Export data in CSV, JSON, JSONL, Parquet, and text formats
+---
+
+The EnergiaPro CLI supports multiple output formats to integrate seamlessly with your data pipeline and analysis tools.
+
+## Available Formats
+
+Use the `--format` (or `-f`) flag to specify your desired output format:
+
+```bash
+energiapro installations CLIENT_123 --format json
+```
+
+### Text (Default)
+
+Human-readable table format, ideal for terminal viewing.
+
+```bash
+energiapro installations CLIENT_123
+# or explicitly:
+energiapro installations CLIENT_123 --format text
+```
+
+**Example output:**
+
+```
+id                  street_name      street_address        building_number  postal_code  city
+INST_001           Rue du Commerce   Rue du Commerce 12    12               1003         Lausanne
+INST_002           Avenue de la Gare Avenue de la Gare 45  45               1020         Renens
+```
+
+<Tip>
+  Text format is automatically selected when output is to a terminal. It's not suitable for piping to other programs.
+</Tip>
+
+### CSV
+
+Comma-separated values format, compatible with spreadsheet applications and data analysis tools.
+
+```bash
+energiapro measurements CLIENT_123 INST_001 --format csv
+```
+
+**Example output:**
+
+```csv
+client_id,installation_id,timestamp,index_m3,consumption_m3,consumption_kwh
+1,INST_001,2024-04-01 15:00:00,145506.0,77.1,798.45
+1,INST_001,2024-04-02 15:00:00,145595.0,89.3,924.8
+```
+
+**Use cases:**
+
+- Import into Excel, Google Sheets, or Numbers
+- Process with pandas: `pd.read_csv('data.csv')`
+- Load into databases
+
+### JSON
+
+JSON array format with pretty formatting.
+
+```bash
+energiapro installations CLIENT_123 --format json
+```
+
+**Example output:**
+
+```json
+[
+  {
+    "id": "INST_001",
+    "street_name": "Rue du Commerce",
+    "street_address": "Rue du Commerce 12",
+    "building_number": 12,
+    "postal_code": "1003",
+    "city": "Lausanne"
+  },
+  {
+    "id": "INST_002",
+    "street_name": "Avenue de la Gare",
+    "street_address": "Avenue de la Gare 45",
+    "building_number": 45,
+    "postal_code": "1020",
+    "city": "Renens"
+  }
+]
+```
+
+**Use cases:**
+
+- Web API integration
+- JavaScript/TypeScript applications
+- Configuration and data interchange
+
+### JSONL
+
+JSON Lines format - one JSON object per line, ideal for streaming and log processing.
+
+```bash
+energiapro measurements CLIENT_123 INST_001 --format jsonl
+```
+
+**Example output:**
+
+```jsonl
+{"client_id":1,"installation_id":"INST_001","timestamp":"2024-04-01 15:00:00","index_m3":145506.0,"consumption_m3":77.1,"consumption_kwh":798.45}
+{"client_id":1,"installation_id":"INST_001","timestamp":"2024-04-02 15:00:00","index_m3":145595.0,"consumption_m3":89.3,"consumption_kwh":924.8}
+```
+
+**Use cases:**
+
+- Streaming large datasets
+- Log aggregation systems (Elasticsearch, Splunk)
+- Line-by-line processing with `jq`
+
+### Parquet
+
+Columnar storage format optimized for analytics, used by Apache Spark and many data tools.
+
+```bash
+energiapro measurements CLIENT_123 INST_001 --format parquet > data.parquet
+```
+
+<Warning>
+  Parquet output is binary. Always redirect to a file - don't print to terminal.
+</Warning>
+
+**Use cases:**
+
+- Big data processing with Apache Spark
+- Data warehouses (Snowflake, BigQuery, Redshift)
+- Efficient storage for large datasets
+- Analysis with pandas, Polars, or DuckDB
+
+## Format Comparison
+
+| Format | Size | Speed | Human Readable | Best For |
+|--------|------|-------|----------------|----------|
+| Text | Medium | Fast | ✓ | Terminal viewing |
+| CSV | Medium | Fast | ✓ | Spreadsheets, simple analysis |
+| JSON | Large | Medium | ✓ | APIs, web apps |
+| JSONL | Large | Fast | ✓ | Streaming, line processing |
+| Parquet | Small | Very Fast | ✗ | Big data, analytics |
+
+## Saving to Files
+
+Redirect output to save data to files:
+
+<CodeGroup>
+```bash CSV
+energiapro installations CLIENT_123 -f csv > installations.csv
+```
+
+```bash JSON
+energiapro measurements CLIENT_123 INST_001 -f json > measurements.json
+```
+
+```bash JSONL
+energiapro measurements CLIENT_123 INST_001 -f jsonl > measurements.jsonl
+```
+
+```bash Parquet
+energiapro measurements CLIENT_123 INST_001 -f parquet > measurements.parquet
+```
+</CodeGroup>
+
+## Processing Output
+
+### With jq (JSON/JSONL)
+
+Extract specific fields:
+
+```bash
+# Get all installation IDs
+energiapro installations CLIENT_123 -f json | jq '.[].id'
+
+# Filter measurements by date
+energiapro measurements CLIENT_123 INST_001 -f jsonl | \
+  jq -c 'select(.timestamp | startswith("2024-04"))'
+```
+
+### With pandas (Python)
+
+```python
+import pandas as pd
+
+# Read CSV
+df = pd.read_csv('installations.csv')
+
+# Read JSON
+df = pd.read_json('measurements.json')
+
+# Read Parquet
+df = pd.read_parquet('measurements.parquet')
+```
+
+### With Polars (Python/Rust)
+
+```python
+import polars as pl
+
+# Read CSV
+df = pl.read_csv('installations.csv')
+
+# Read JSONL
+df = pl.read_ndjson('measurements.jsonl')
+
+# Read Parquet (recommended)
+df = pl.read_parquet('measurements.parquet')
+```
+
+### With DuckDB (SQL)
+
+```sql
+-- Query Parquet directly
+SELECT * FROM 'measurements.parquet'
+WHERE consumption_kwh > 800;
+
+-- Query CSV
+SELECT * FROM read_csv_auto('installations.csv');
+```
+
+## Pipeline Examples
+
+<Tabs>
+  <Tab title="Daily Export">
+    Export yesterday's measurements to CSV:
+
+    ```bash daily-export.sh
+    #!/bin/bash
+    
+    YESTERDAY=$(date -d "yesterday" +%Y-%m-%d)
+    TODAY=$(date +%Y-%m-%d)
+    
+    energiapro measurements CLIENT_123 INST_001 \
+      --from "$YESTERDAY" \
+      --to "$TODAY" \
+      --format csv > "measurements-$YESTERDAY.csv"
+    ```
+  </Tab>
+
+  <Tab title="JSON Processing">
+    Get installation count by city:
+
+    ```bash
+    energiapro installations CLIENT_123 -f json | \
+      jq 'group_by(.city) | map({city: .[0].city, count: length})'
+    ```
+  </Tab>
+
+  <Tab title="Parquet Analytics">
+    Load into DuckDB for analysis:
+
+    ```bash
+    # Export to Parquet
+    energiapro measurements CLIENT_123 INST_001 \
+      --from 2024-01-01 \
+      --to 2024-12-31 \
+      -f parquet > yearly-data.parquet
+    
+    # Query with DuckDB
+    duckdb -c "SELECT 
+      DATE_TRUNC('month', timestamp::TIMESTAMP) as month,
+      SUM(consumption_kwh) as total_kwh
+    FROM 'yearly-data.parquet'
+    GROUP BY month
+    ORDER BY month;"
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Examples" icon="code" href="/cli/examples">
+    See more real-world usage examples
+  </Card>
+  <Card title="Commands" icon="terminal" href="/cli/commands">
+    Learn about all available commands
+  </Card>
+</CardGroup>

@@ -1,0 +1,282 @@
+---
+title: Errors
+description: Error types and codes for the EnergiaPro SDK
+---
+
+## EnergiaProError
+
+Error type returned by fallible operations in this SDK.
+
+```rust
+pub enum EnergiaProError {
+    InvalidArgument(String),
+    SecretKeyGeneration(bcrypt::BcryptError),
+    BlockingTaskJoin(tokio::task::JoinError),
+    Http(reqwest::Error),
+    HttpStatus {
+        status: reqwest::StatusCode,
+        endpoint: String,
+        body_snippet: String,
+    },
+    Json(serde_json::Error),
+    MissingToken,
+    Api {
+        code: ApiErrorCode,
+        message: String,
+    },
+}
+```
+
+### Variants
+
+<ResponseField name="InvalidArgument" type="EnergiaProError">
+  A provided argument failed client-side validation.
+  
+  **Inner type:** `String` - Description of the validation failure.
+  
+  **Display:** `"invalid argument: {0}"`
+</ResponseField>
+
+<ResponseField name="SecretKeyGeneration" type="EnergiaProError">
+  Failed to generate the one-time secret key hash.
+  
+  **Inner type:** `bcrypt::BcryptError`
+  
+  **Display:** `"failed to generate one-time secret_key: {0}"`
+</ResponseField>
+
+<ResponseField name="BlockingTaskJoin" type="EnergiaProError">
+  Failed to join a blocking task.
+  
+  **Inner type:** `tokio::task::JoinError`
+  
+  **Display:** `"failed to join blocking task: {0}"`
+</ResponseField>
+
+<ResponseField name="Http" type="EnergiaProError">
+  HTTP transport-level failure.
+  
+  **Inner type:** `reqwest::Error`
+  
+  **Display:** `"http request failed: {0}"`
+</ResponseField>
+
+<ResponseField name="HttpStatus" type="EnergiaProError">
+  Non-success HTTP status not mapped to a typed API error.
+  
+  **Fields:**
+  - `status: reqwest::StatusCode` - HTTP status code returned by the server
+  - `endpoint: String` - Endpoint URL that produced the response
+  - `body_snippet: String` - Trimmed excerpt of the response body for diagnostics
+  
+  **Display:** `"http status {status} from {endpoint}: {body_snippet}"`
+</ResponseField>
+
+<ResponseField name="Json" type="EnergiaProError">
+  Failed to parse or serialize JSON payloads.
+  
+  **Inner type:** `serde_json::Error`
+  
+  **Display:** `"invalid json payload: {0}"`
+</ResponseField>
+
+<ResponseField name="MissingToken" type="EnergiaProError">
+  Authentication response did not contain a token.
+  
+  **Display:** `"authentication succeeded but token is missing"`
+</ResponseField>
+
+<ResponseField name="Api" type="EnergiaProError">
+  Structured API error payload.
+  
+  **Fields:**
+  - `code: ApiErrorCode` - Parsed API error code
+  - `message: String` - API-provided message
+  
+  **Display:** `"api error {code}: {message}"`
+</ResponseField>
+
+### Example: Error Handling
+
+```rust
+use energiapro_sdk::{EnergiaPro, EnergiaProError};
+
+#[tokio::main]
+async fn main() {
+    let client = EnergiaPro::new("username", "secret_key");
+    
+    match client {
+        Ok(c) => {
+            // Use the client
+            match c.installations.list("client_id").await {
+                Ok(installations) => {
+                    println!("Found {} installations", installations.len());
+                }
+                Err(e) => match e {
+                    EnergiaProError::InvalidArgument(msg) => {
+                        eprintln!("Invalid argument: {}", msg);
+                    }
+                    EnergiaProError::Api { code, message } => {
+                        eprintln!("API error {}: {}", code, message);
+                    }
+                    EnergiaProError::Http(err) => {
+                        eprintln!("HTTP error: {}", err);
+                    }
+                    _ => {
+                        eprintln!("Error: {}", e);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to create client: {}", e);
+        }
+    }
+}
+```
+
+## ApiErrorCode
+
+API-level error code returned by EnergiaPro (`errorCode` field in API responses).
+
+```rust
+pub enum ApiErrorCode {
+    MethodNotPost,           // Error code 1
+    SecretKeyAlreadyUsed,    // Error code 2
+    ScopeNotFound,           // Error code 3
+    MaxSessionsReached,      // Error code 4
+    MissingParameters,       // Error code 5
+    MissingSsl,              // Error code 6
+    InvalidUsername,         // Error code 10
+    MissingPassword,         // Error code 11
+    PortalAccountDisabled,   // Error code 12
+    ApiAccountDisabled,      // Error code 15
+    NoLpnData,               // Error code 100
+    NoInstallations,         // Error code 110
+    TokenCorrupted,          // Error code 210
+    TokenInvalid,            // Error code 220
+    Unknown(String),
+}
+```
+
+### Variants
+
+<ResponseField name="MethodNotPost" type="ApiErrorCode">
+  Error code `1`: request method is not POST.
+</ResponseField>
+
+<ResponseField name="SecretKeyAlreadyUsed" type="ApiErrorCode">
+  Error code `2`: one-time secret key was already used.
+</ResponseField>
+
+<ResponseField name="ScopeNotFound" type="ApiErrorCode">
+  Error code `3`: requested scope does not exist.
+</ResponseField>
+
+<ResponseField name="MaxSessionsReached" type="ApiErrorCode">
+  Error code `4`: maximum number of sessions has been reached.
+</ResponseField>
+
+<ResponseField name="MissingParameters" type="ApiErrorCode">
+  Error code `5`: request is missing required parameters.
+</ResponseField>
+
+<ResponseField name="MissingSsl" type="ApiErrorCode">
+  Error code `6`: request must use SSL.
+</ResponseField>
+
+<ResponseField name="InvalidUsername" type="ApiErrorCode">
+  Error code `10`: username is invalid.
+</ResponseField>
+
+<ResponseField name="MissingPassword" type="ApiErrorCode">
+  Error code `11`: password/secret key is missing.
+</ResponseField>
+
+<ResponseField name="PortalAccountDisabled" type="ApiErrorCode">
+  Error code `12`: portal account is disabled.
+</ResponseField>
+
+<ResponseField name="ApiAccountDisabled" type="ApiErrorCode">
+  Error code `15`: API account is disabled.
+</ResponseField>
+
+<ResponseField name="NoLpnData" type="ApiErrorCode">
+  Error code `100`: no LPN data is available.
+</ResponseField>
+
+<ResponseField name="NoInstallations" type="ApiErrorCode">
+  Error code `110`: no installations are available.
+</ResponseField>
+
+<ResponseField name="TokenCorrupted" type="ApiErrorCode">
+  Error code `210`: token is corrupted.
+</ResponseField>
+
+<ResponseField name="TokenInvalid" type="ApiErrorCode">
+  Error code `220`: token is invalid or expired.
+</ResponseField>
+
+<ResponseField name="Unknown" type="ApiErrorCode">
+  Unknown code preserved as returned by the API.
+  
+  **Inner type:** `String` - The raw error code from the API.
+</ResponseField>
+
+### Methods
+
+#### from_api_code
+
+Map a raw API error code string into a typed `ApiErrorCode`. Unrecognized values are preserved in `ApiErrorCode::Unknown`.
+
+```rust
+pub fn from_api_code(code: &str) -> Self
+```
+
+#### is_token_error
+
+Return `true` if this code indicates token corruption or invalidity.
+
+```rust
+pub fn is_token_error(&self) -> bool
+```
+
+Returns `true` for `TokenCorrupted` or `TokenInvalid` variants.
+
+#### as_str
+
+Return the raw API code string.
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, EnergiaProError, ApiErrorCode};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    match client.installations.list("client_id").await {
+        Ok(installations) => {
+            println!("Found {} installations", installations.len());
+        }
+        Err(EnergiaProError::Api { code, message }) => {
+            if code.is_token_error() {
+                eprintln!("Token error: {}", message);
+                // Re-authenticate or refresh token
+            } else {
+                eprintln!("API error code {}: {}", code.as_str(), message);
+            }
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+        }
+    }
+    
+    Ok(())
+}
+```

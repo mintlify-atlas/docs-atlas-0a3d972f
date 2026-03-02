@@ -1,0 +1,238 @@
+---
+title: 'energiapro measurements'
+description: 'Fetch and print measurements for one installation'
+---
+
+## Usage
+
+```bash
+energiapro measurements [OPTIONS] <CLIENT_ID> <INSTALLATION_ID>
+```
+
+Fetch measurements for one installation and write formatted output to stdout. The API response must be a top-level JSON array of objects so it can be loaded into a Polars DataFrame.
+
+## Arguments
+
+<ParamField path="CLIENT_ID" type="string" required>
+  EnergiaPro client identifier
+</ParamField>
+
+<ParamField path="INSTALLATION_ID" type="string" required>
+  Installation identifier (num_inst)
+</ParamField>
+
+## Options
+
+<ParamField path="--username" type="string" required>
+  EnergiaPro API username
+  
+  **Short flag:** `-u`
+  
+  **Environment variable:** `ENERGIAPRO_USERNAME`
+</ParamField>
+
+<ParamField path="--secret-key" type="string" required>
+  EnergiaPro API secret key
+  
+  **Short flag:** `-k`
+  
+  **Environment variable:** `ENERGIAPRO_SECRET_KEY`
+</ParamField>
+
+<ParamField path="--scope" type="enum" default="lpn-json">
+  Scope to query
+  
+  **Short flag:** `-s`
+  
+  **Possible values:**
+  - `lpn-json` - LPN JSON scope (default)
+  - `gc-plus-json` - GC Plus JSON scope
+</ParamField>
+
+<ParamField path="--from" type="string">
+  Start date filter in YYYY-MM-DD format
+</ParamField>
+
+<ParamField path="--to" type="string">
+  End date filter in YYYY-MM-DD format
+</ParamField>
+
+<ParamField path="--format" type="enum" default="text">
+  Output format
+  
+  **Short flag:** `-f`
+  
+  **Possible values:**
+  - `text` - Human-readable table format
+  - `json` - JSON array format
+  - `jsonl` - JSON Lines format (one object per line)
+  - `csv` - CSV format with headers
+  - `parquet` - Apache Parquet binary format
+</ParamField>
+
+<ParamField path="--timeout-secs" type="number" default="30">
+  HTTP timeout in seconds
+</ParamField>
+
+<ParamField path="--base-url" type="string">
+  HTTPS base API URL (or ENERGIAPRO_BASE_URL)
+  
+  **Environment variable:** `ENERGIAPRO_BASE_URL`
+</ParamField>
+
+## Environment Variables
+
+The following environment variables can be used instead of command-line flags:
+
+- `ENERGIAPRO_USERNAME` - API username (alternative to `--username`)
+- `ENERGIAPRO_SECRET_KEY` - API secret key (alternative to `--secret-key`)
+- `ENERGIAPRO_BASE_URL` - Base API URL (alternative to `--base-url`)
+
+## Output Fields
+
+The command returns the following fields for each measurement:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `client_id` | number | Client identifier |
+| `installation_id` | string | Installation identifier |
+| `timestamp` | string | Measurement timestamp |
+| `index_m3` | number | Gas meter index in cubic meters |
+| `consumption_m3` | number | Gas consumption in cubic meters |
+| `consumption_kwh` | number | Energy consumption in kilowatt-hours |
+
+## Examples
+
+### Basic usage with text output
+
+```bash
+energiapro measurements \
+  --username "your-username" \
+  --secret-key "your-secret-key" \
+  CLIENT_123 INSTALLATION_456
+```
+
+**Output:**
+
+```
+client_id  installation_id   timestamp            index_m3   consumption_m3  consumption_kwh
+1          INSTALLATION_1    2024-04-01 15:00:00  145506.00  77.10           798.45
+2          INSTALLATION_2    2024-04-02 15:00:00  145595.00  89.30           924.80
+```
+
+### Filter by date range
+
+```bash
+energiapro measurements \
+  --from 2024-04-01 \
+  --to 2024-04-30 \
+  CLIENT_123 INSTALLATION_456
+```
+
+### Use different scope
+
+```bash
+energiapro measurements \
+  --scope gc-plus-json \
+  CLIENT_123 INSTALLATION_456
+```
+
+### Export to CSV
+
+```bash
+energiapro measurements \
+  --format csv \
+  CLIENT_123 INSTALLATION_456 > measurements.csv
+```
+
+**Output:**
+
+```csv
+client_id,installation_id,timestamp,index_m3,consumption_m3,consumption_kwh
+1,INSTALLATION_1,2024-04-01 15:00:00,145506.0,77.1,798.45
+2,INSTALLATION_2,2024-04-02 15:00:00,145595.0,89.3,924.8
+```
+
+### Export to JSON
+
+```bash
+energiapro measurements \
+  --format json \
+  CLIENT_123 INSTALLATION_456 > measurements.json
+```
+
+**Output:**
+
+```json
+[
+  {
+    "client_id": 1,
+    "installation_id": "INSTALLATION_1",
+    "timestamp": "2024-04-01 15:00:00",
+    "index_m3": 145506.0,
+    "consumption_m3": 77.1,
+    "consumption_kwh": 798.45
+  },
+  {
+    "client_id": 2,
+    "installation_id": "INSTALLATION_2",
+    "timestamp": "2024-04-02 15:00:00",
+    "index_m3": 145595.0,
+    "consumption_m3": 89.3,
+    "consumption_kwh": 924.8
+  }
+]
+```
+
+### Using environment variables
+
+```bash
+export ENERGIAPRO_USERNAME="your-username"
+export ENERGIAPRO_SECRET_KEY="your-secret-key"
+
+energiapro measurements CLIENT_123 INSTALLATION_456
+```
+
+### Filter with date range and export to CSV
+
+```bash
+energiapro measurements \
+  --from 2024-01-01 \
+  --to 2024-12-31 \
+  --format csv \
+  CLIENT_123 INSTALLATION_456 > yearly_measurements.csv
+```
+
+### Export to JSON Lines format
+
+```bash
+energiapro measurements \
+  --format jsonl \
+  CLIENT_123 INSTALLATION_456 > measurements.jsonl
+```
+
+**Output:**
+
+```jsonl
+{"client_id":1,"installation_id":"INSTALLATION_1","timestamp":"2024-04-01 15:00:00","index_m3":145506.0,"consumption_m3":77.1,"consumption_kwh":798.45}
+{"client_id":2,"installation_id":"INSTALLATION_2","timestamp":"2024-04-02 15:00:00","index_m3":145595.0,"consumption_m3":89.3,"consumption_kwh":924.8}
+```
+
+### Custom timeout and base URL
+
+```bash
+energiapro measurements \
+  --timeout-secs 60 \
+  --base-url "https://custom.api.example.com" \
+  CLIENT_123 INSTALLATION_456
+```
+
+### Export to Parquet for data analysis
+
+```bash
+energiapro measurements \
+  --format parquet \
+  --from 2024-01-01 \
+  --to 2024-12-31 \
+  CLIENT_123 INSTALLATION_456 > measurements.parquet
+```

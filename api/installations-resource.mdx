@@ -1,0 +1,59 @@
+---
+title: InstallationsResource
+description: Resource for installation-related API operations
+---
+
+## Overview
+
+The `InstallationsResource` provides methods for retrieving installation data from the EnergiaPro API. Access it through the `installations` field on the `EnergiaPro` client.
+
+## Methods
+
+### list
+
+Retrieve installations for a given client identifier.
+
+```rust
+pub async fn list(
+    &self,
+    client_id: impl AsRef<str>,
+) -> Result<Vec<Installation>, EnergiaProError>
+```
+
+<ParamField path="client_id" type="impl AsRef<str>" required>
+  The client identifier to retrieve installations for.
+</ParamField>
+
+<ResponseField name="Result" type="Result<Vec<Installation>, EnergiaProError>">
+  Returns a vector of `Installation` objects on success, or an error if:
+  - `client_id` is empty or contains only whitespace
+  - authentication fails or a token cannot be obtained/refreshed
+  - the HTTP request fails
+  - the API returns a non-success status or error payload
+  - the response payload cannot be parsed into installations
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::EnergiaPro;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let installations = client.installations.list("client_id").await?;
+    
+    for installation in installations {
+        println!("Installation ID: {}", installation.id);
+        println!("Address: {} {}", installation.street_address, installation.building_number);
+        println!("City: {} {}", installation.postal_code, installation.city);
+    }
+    
+    Ok(())
+}
+```
+
+## Related Types
+
+See the [Installation model](/api/models#installation) for the structure of returned data.

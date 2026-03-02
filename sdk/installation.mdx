@@ -1,0 +1,82 @@
+---
+title: Installation
+description: Install the EnergiaPro Rust SDK using Cargo
+---
+
+## Adding to Your Project
+
+The EnergiaPro SDK is available as a Rust crate. Add it to your project using Cargo:
+
+<Steps>
+  <Step title="Add the dependency">
+    Add `energiapro` to your `Cargo.toml`:
+
+    ```toml Cargo.toml
+    [dependencies]
+    energiapro = "0.1.0"
+    tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+    ```
+
+    <Note>
+      The SDK is fully asynchronous and requires a Tokio runtime. Make sure to include Tokio with the `macros` and `rt-multi-thread` features.
+    </Note>
+  </Step>
+
+  <Step title="Import the SDK">
+    Import the main types in your Rust code:
+
+    ```rust
+    use energiapro::{EnergiaPro, MeasurementScope};
+    ```
+  </Step>
+
+  <Step title="Create a client">
+    Initialize the SDK with your credentials:
+
+    ```rust
+    #[tokio::main]
+    async fn main() -> Result<(), Box<dyn std::error::Error>> {
+        let energiapro = EnergiaPro::new("your-username", "your-secret-key")?;
+        Ok(())
+    }
+    ```
+  </Step>
+</Steps>
+
+## Requirements
+
+- **Rust**: Edition 2024 or later
+- **Runtime**: Tokio 1.x with async support
+- **TLS**: The SDK uses `rustls` for secure HTTPS connections
+
+## Dependencies
+
+The SDK has minimal dependencies:
+
+- `reqwest` - HTTP client with rustls
+- `serde` and `serde_json` - JSON serialization
+- `tokio` - Async runtime
+- `chrono` - Date and time handling
+- `bcrypt` - Authentication secret key hashing
+- `thiserror` - Error handling
+
+## Verification
+
+Verify your installation by running a simple test:
+
+```rust
+use energiapro::EnergiaPro;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+    println!("SDK initialized successfully!");
+    Ok(())
+}
+```
+
+If the client initializes without errors, you're ready to start making API calls.
+
+<Note>
+  The SDK validates your credentials format during initialization but does not make an authentication request until you perform your first API operation.
+</Note>

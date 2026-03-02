@@ -1,0 +1,130 @@
+---
+title: EnergiaPro
+description: High-level asynchronous client for the EnergiaPro API
+---
+
+## Overview
+
+The `EnergiaPro` struct is the main entry point for interacting with the EnergiaPro API. It provides access to installation and measurement resources through its public fields.
+
+## Constructor Methods
+
+### new
+
+Create a new EnergiaPro SDK client with default `ClientOptions`.
+
+```rust
+pub fn new(
+    username: impl Into<String>,
+    secret_key: impl Into<String>,
+) -> Result<Self, EnergiaProError>
+```
+
+<ParamField path="username" type="impl Into<String>" required>
+  EnergiaPro API username
+</ParamField>
+
+<ParamField path="secret_key" type="impl Into<String>" required>
+  EnergiaPro API secret key
+</ParamField>
+
+<ResponseField name="Result" type="Result<EnergiaPro, EnergiaProError>">
+  Returns an `EnergiaPro` instance on success, or an error if:
+  - `username` is empty or contains only whitespace
+  - `secret_key` is empty or contains only whitespace
+  - the underlying HTTP client cannot be initialized
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::EnergiaPro;
+
+let client = EnergiaPro::new("your-username", "your-secret-key")?;
+```
+
+### with_options
+
+Create a new EnergiaPro SDK client with custom `ClientOptions`.
+
+```rust
+pub fn with_options(
+    username: impl Into<String>,
+    secret_key: impl Into<String>,
+    options: ClientOptions,
+) -> Result<Self, EnergiaProError>
+```
+
+<ParamField path="username" type="impl Into<String>" required>
+  EnergiaPro API username
+</ParamField>
+
+<ParamField path="secret_key" type="impl Into<String>" required>
+  EnergiaPro API secret key
+</ParamField>
+
+<ParamField path="options" type="ClientOptions" required>
+  Custom client configuration options
+</ParamField>
+
+<ResponseField name="Result" type="Result<EnergiaPro, EnergiaProError>">
+  Returns an `EnergiaPro` instance on success, or an error if:
+  - `username` is empty or contains only whitespace
+  - `secret_key` is empty or contains only whitespace
+  - `options.base_url` is empty, invalid, or does not use `https`
+  - the underlying HTTP client cannot be initialized
+</ResponseField>
+
+#### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, ClientOptions};
+use std::time::Duration;
+
+let options = ClientOptions::default()
+    .with_timeout(Duration::from_secs(60));
+
+let client = EnergiaPro::with_options(
+    "your-username",
+    "your-secret-key",
+    options
+)?;
+```
+
+## Resource Fields
+
+The `EnergiaPro` struct provides access to API resources through its public fields:
+
+<ResponseField name="installations" type="InstallationsResource">
+  Installation-related API operations. See [InstallationsResource](/api/installations-resource) for available methods.
+</ResponseField>
+
+<ResponseField name="measurements" type="MeasurementsResource">
+  Measurement-related API operations. See [MeasurementsResource](/api/measurements-resource) for available methods.
+</ResponseField>
+
+## Complete Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create client with default options
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    // List installations
+    let installations = client.installations.list("client_id").await?;
+    
+    // Get measurements for an installation
+    let measurements = client.measurements.all(
+        "client_id",
+        &installations[0].id,
+        MeasurementScope::LpnJson
+    ).await?;
+    
+    println!("Found {} measurements", measurements.len());
+    
+    Ok(())
+}
+```

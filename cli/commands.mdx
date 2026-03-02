@@ -1,0 +1,256 @@
+---
+title: Commands
+description: Overview of all available CLI commands and their options
+---
+
+The EnergiaPro CLI provides two main commands for interacting with the API: `installations` and `measurements`.
+
+## Global Options
+
+These options are available for all commands:
+
+| Option | Short | Environment Variable | Description | Default |
+|--------|-------|---------------------|-------------|--------|
+| `--username` | `-u` | `ENERGIAPRO_USERNAME` | EnergiaPro API username | Required |
+| `--secret-key` | `-k` | `ENERGIAPRO_SECRET_KEY` | EnergiaPro API secret key | Required |
+| `--format` | `-f` | - | Output format (text, csv, json, jsonl, parquet) | `text` |
+| `--timeout-secs` | - | - | HTTP timeout in seconds | `30` |
+| `--base-url` | - | `ENERGIAPRO_BASE_URL` | Custom API base URL | - |
+
+## installations
+
+Fetch and display all installations for a specific client.
+
+### Usage
+
+```bash
+energiapro installations [OPTIONS] <CLIENT_ID>
+```
+
+### Arguments
+
+<ParamField path="CLIENT_ID" type="string" required>
+  The EnergiaPro client identifier
+</ParamField>
+
+### Options
+
+All [global options](#global-options) are available.
+
+### Output Fields
+
+When using structured output formats (csv, json, jsonl, parquet), the following fields are included:
+
+- `id` - Installation identifier
+- `street_name` - Street name
+- `street_address` - Full street address
+- `building_number` - Building number
+- `postal_code` - Postal code
+- `city` - City name
+
+### Examples
+
+<CodeGroup>
+```bash Default (text table)
+energiapro installations CLIENT_123
+```
+
+```bash CSV output
+energiapro installations CLIENT_123 --format csv
+```
+
+```bash JSON output
+energiapro installations CLIENT_123 -f json
+```
+
+```bash Save to file
+energiapro installations CLIENT_123 -f parquet > installations.parquet
+```
+</CodeGroup>
+
+### Sample Output
+
+<Tabs>
+  <Tab title="Text (default)">
+    ```
+    id                  street_name      street_address        building_number  postal_code  city
+    INST_001           Rue du Commerce   Rue du Commerce 12    12               1003         Lausanne
+    INST_002           Avenue de la Gare Avenue de la Gare 45  45               1020         Renens
+    ```
+  </Tab>
+
+  <Tab title="CSV">
+    ```csv
+    id,street_name,street_address,building_number,postal_code,city
+    INST_001,Rue du Commerce,Rue du Commerce 12,12,1003,Lausanne
+    INST_002,Avenue de la Gare,Avenue de la Gare 45,45,1020,Renens
+    ```
+  </Tab>
+
+  <Tab title="JSON">
+    ```json
+    [
+      {
+        "id": "INST_001",
+        "street_name": "Rue du Commerce",
+        "street_address": "Rue du Commerce 12",
+        "building_number": 12,
+        "postal_code": "1003",
+        "city": "Lausanne"
+      },
+      {
+        "id": "INST_002",
+        "street_name": "Avenue de la Gare",
+        "street_address": "Avenue de la Gare 45",
+        "building_number": 45,
+        "postal_code": "1020",
+        "city": "Renens"
+      }
+    ]
+    ```
+  </Tab>
+
+  <Tab title="JSONL">
+    ```jsonl
+    {"id":"INST_001","street_name":"Rue du Commerce","street_address":"Rue du Commerce 12","building_number":12,"postal_code":"1003","city":"Lausanne"}
+    {"id":"INST_002","street_name":"Avenue de la Gare","street_address":"Avenue de la Gare 45","building_number":45,"postal_code":"1020","city":"Renens"}
+    ```
+  </Tab>
+</Tabs>
+
+## measurements
+
+Fetch and display measurements for a specific installation.
+
+### Usage
+
+```bash
+energiapro measurements [OPTIONS] <CLIENT_ID> <INSTALLATION_ID>
+```
+
+### Arguments
+
+<ParamField path="CLIENT_ID" type="string" required>
+  The EnergiaPro client identifier
+</ParamField>
+
+<ParamField path="INSTALLATION_ID" type="string" required>
+  The installation identifier (num_inst)
+</ParamField>
+
+### Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|--------|
+| `--scope` | `-s` | Scope to query (lpn-json, gc-plus-json) | `lpn-json` |
+| `--from` | - | Start date filter in YYYY-MM-DD format | - |
+| `--to` | - | End date filter in YYYY-MM-DD format | - |
+
+All [global options](#global-options) are also available.
+
+### Output Fields
+
+- `client_id` - Client identifier (integer)
+- `installation_id` - Installation identifier
+- `timestamp` - Measurement timestamp
+- `index_m3` - Meter index in cubic meters
+- `consumption_m3` - Consumption in cubic meters
+- `consumption_kwh` - Consumption in kilowatt-hours
+
+### Examples
+
+<CodeGroup>
+```bash All measurements
+energiapro measurements CLIENT_123 INST_001
+```
+
+```bash Date range filter
+energiapro measurements CLIENT_123 INST_001 \
+  --from 2024-01-01 \
+  --to 2024-01-31
+```
+
+```bash Different scope
+energiapro measurements CLIENT_123 INST_001 --scope gc-plus-json
+```
+
+```bash JSON output
+energiapro measurements CLIENT_123 INST_001 \
+  --from 2024-01-01 \
+  --format json
+```
+</CodeGroup>
+
+### Sample Output
+
+<Tabs>
+  <Tab title="Text (default)">
+    ```
+    client_id  installation_id  timestamp            index_m3   consumption_m3  consumption_kwh
+    1          INST_001        2024-04-01 15:00:00  145506.00  77.10           798.45
+    1          INST_001        2024-04-02 15:00:00  145595.00  89.30           924.80
+    ```
+  </Tab>
+
+  <Tab title="CSV">
+    ```csv
+    client_id,installation_id,timestamp,index_m3,consumption_m3,consumption_kwh
+    1,INST_001,2024-04-01 15:00:00,145506.0,77.1,798.45
+    1,INST_001,2024-04-02 15:00:00,145595.0,89.3,924.8
+    ```
+  </Tab>
+
+  <Tab title="JSON">
+    ```json
+    [
+      {
+        "client_id": 1,
+        "installation_id": "INST_001",
+        "timestamp": "2024-04-01 15:00:00",
+        "index_m3": 145506.0,
+        "consumption_m3": 77.1,
+        "consumption_kwh": 798.45
+      },
+      {
+        "client_id": 1,
+        "installation_id": "INST_001",
+        "timestamp": "2024-04-02 15:00:00",
+        "index_m3": 145595.0,
+        "consumption_m3": 89.3,
+        "consumption_kwh": 924.8
+      }
+    ]
+    ```
+  </Tab>
+
+  <Tab title="JSONL">
+    ```jsonl
+    {"client_id":1,"installation_id":"INST_001","timestamp":"2024-04-01 15:00:00","index_m3":145506.0,"consumption_m3":77.1,"consumption_kwh":798.45}
+    {"client_id":1,"installation_id":"INST_001","timestamp":"2024-04-02 15:00:00","index_m3":145595.0,"consumption_m3":89.3,"consumption_kwh":924.8}
+    ```
+  </Tab>
+</Tabs>
+
+## Help
+
+Get help for any command:
+
+```bash
+# General help
+energiapro --help
+
+# Command-specific help
+energiapro installations --help
+energiapro measurements --help
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Output Formats" icon="file-export" href="/cli/output-formats">
+    Learn about supported output formats
+  </Card>
+  <Card title="Examples" icon="code" href="/cli/examples">
+    See real-world command examples
+  </Card>
+</CardGroup>

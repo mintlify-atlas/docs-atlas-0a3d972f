@@ -1,0 +1,166 @@
+---
+title: Types
+description: Type definitions and enums used by the EnergiaPro SDK
+---
+
+## MeasurementScope
+
+Scope value used by the measurements endpoint. `MeasurementScope::LpnJson` is the default scope.
+
+```rust
+pub enum MeasurementScope {
+    LpnJson,
+    GcPlusJson,
+    Custom(String),
+}
+```
+
+### Variants
+
+<ResponseField name="LpnJson" type="MeasurementScope">
+  Standard LPN JSON payload (`lpn-json`). This is the default scope.
+</ResponseField>
+
+<ResponseField name="GcPlusJson" type="MeasurementScope">
+  Extended GC+ JSON payload (`gc-plus-json`).
+</ResponseField>
+
+<ResponseField name="Custom" type="MeasurementScope">
+  Custom raw scope string for unsupported or future API scopes.
+  
+  **Inner type:** `String`
+</ResponseField>
+
+### Methods
+
+#### as_str
+
+Return the raw API scope value.
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+### Trait Implementations
+
+#### From&lt;&str&gt;
+
+```rust
+impl From<&str> for MeasurementScope
+```
+
+Converts a string slice to a `MeasurementScope`. Known values (`"lpn-json"`, `"gc-plus-json"`) are mapped to their respective variants. Unknown values are wrapped in `Custom`.
+
+#### From&lt;String&gt;
+
+```rust
+impl From<String> for MeasurementScope
+```
+
+Converts an owned string to a `MeasurementScope`. Known values are mapped to their respective variants. Unknown values are wrapped in `Custom`.
+
+### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    // Use the default LPN JSON scope
+    let measurements = client.measurements.all(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson
+    ).await?;
+    
+    // Use the GC+ scope
+    let measurements = client.measurements.all(
+        "client_id",
+        "installation_id",
+        MeasurementScope::GcPlusJson
+    ).await?;
+    
+    // Use a custom scope
+    let measurements = client.measurements.all(
+        "client_id",
+        "installation_id",
+        MeasurementScope::from("custom-scope")
+    ).await?;
+    
+    Ok(())
+}
+```
+
+## DateInput
+
+Trait for input accepted by public SDK methods where a date is required. String-based inputs must be provided using the `YYYY-MM-DD` format.
+
+```rust
+pub trait DateInput: private::Sealed {
+    fn into_date_string(self) -> String;
+}
+```
+
+### Implementations
+
+The `DateInput` trait is implemented for the following types:
+
+<ResponseField name="chrono::NaiveDate" type="impl DateInput">
+  Formats the date as `YYYY-MM-DD` using `chrono`'s formatting.
+</ResponseField>
+
+<ResponseField name="String" type="impl DateInput">
+  Returns the string as-is. The string should be in `YYYY-MM-DD` format.
+</ResponseField>
+
+<ResponseField name="&str" type="impl DateInput">
+  Converts to an owned string. The string should be in `YYYY-MM-DD` format.
+</ResponseField>
+
+### Example with NaiveDate
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+use chrono::NaiveDate;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let start_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+    let end_date = NaiveDate::from_ymd_opt(2024, 1, 31).unwrap();
+    
+    let measurements = client.measurements.for_date_range(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson,
+        start_date,
+        end_date
+    ).await?;
+    
+    Ok(())
+}
+```
+
+### Example with String
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let measurements = client.measurements.for_date_range(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson,
+        "2024-01-01",
+        "2024-01-31"
+    ).await?;
+    
+    Ok(())
+}
+```

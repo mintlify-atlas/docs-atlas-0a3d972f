@@ -1,0 +1,136 @@
+---
+title: Models
+description: Data models returned by the EnergiaPro API
+---
+
+## Installation
+
+Represents an EnergiaPro installation, which includes details about the location and address of the installation.
+
+```rust
+pub struct Installation {
+    pub id: String,
+    pub street_name: String,
+    pub street_address: String,
+    pub building_number: i64,
+    pub postal_code: String,
+    pub city: String,
+}
+```
+
+### Fields
+
+<ResponseField name="id" type="String">
+  Installation identifier (API field: `insID`).
+</ResponseField>
+
+<ResponseField name="street_name" type="String">
+  Street name (API field: `adrNomRueC`).
+</ResponseField>
+
+<ResponseField name="street_address" type="String">
+  Street address (API field: `adrRueC`).
+</ResponseField>
+
+<ResponseField name="building_number" type="i64">
+  Building number (API field: `adrNumImm`).
+</ResponseField>
+
+<ResponseField name="postal_code" type="String">
+  Postal code (API field: `adrCPC`).
+</ResponseField>
+
+<ResponseField name="city" type="String">
+  City name (API field: `adrLocaliteC`).
+</ResponseField>
+
+### Example
+
+```rust
+use energiapro_sdk::EnergiaPro;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let installations = client.installations.list("client_id").await?;
+    
+    for installation in installations {
+        println!("Installation: {}", installation.id);
+        println!("  Address: {} {}", installation.street_address, installation.building_number);
+        println!("  Location: {} {}", installation.postal_code, installation.city);
+    }
+    
+    Ok(())
+}
+```
+
+## Measurement
+
+A single measurement row returned by the EnergiaPro API. Numeric fields are normalized by the SDK during deserialization.
+
+```rust
+pub struct Measurement {
+    pub client_id: u64,
+    pub installation_id: String,
+    pub timestamp: String,
+    pub index_m3: f64,
+    pub consumption_m3: f64,
+    pub consumption_kwh: f64,
+}
+```
+
+### Fields
+
+<ResponseField name="client_id" type="u64">
+  Numeric client identifier.
+</ResponseField>
+
+<ResponseField name="installation_id" type="String">
+  Installation identifier (API field: `num_inst`).
+</ResponseField>
+
+<ResponseField name="timestamp" type="String">
+  Measurement timestamp as returned by the API (format: `YYYY-MM-DD HH:MM:SS`).
+</ResponseField>
+
+<ResponseField name="index_m3" type="f64">
+  Meter index in cubic meters (API field: `index_m3`).
+</ResponseField>
+
+<ResponseField name="consumption_m3" type="f64">
+  Consumed volume in cubic meters for the interval (API field: `quantite_m3`).
+</ResponseField>
+
+<ResponseField name="consumption_kwh" type="f64">
+  Consumed energy in kilowatt-hours for the interval (API field: `consommation_kw_h`).
+</ResponseField>
+
+### Example
+
+```rust
+use energiapro_sdk::{EnergiaPro, MeasurementScope};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = EnergiaPro::new("username", "secret_key")?;
+    
+    let measurements = client.measurements.for_date(
+        "client_id",
+        "installation_id",
+        MeasurementScope::LpnJson,
+        "2024-04-01"
+    ).await?;
+    
+    for measurement in measurements {
+        println!("Timestamp: {}", measurement.timestamp);
+        println!("  Consumption: {} kWh ({} m³)", 
+            measurement.consumption_kwh,
+            measurement.consumption_m3
+        );
+        println!("  Meter index: {} m³", measurement.index_m3);
+    }
+    
+    Ok(())
+}
+```

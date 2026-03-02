@@ -1,0 +1,205 @@
+---
+title: Installations Resource
+description: Retrieve installation data from the EnergiaPro API
+---
+
+## Overview
+
+The `installations` resource provides access to installation data. Installations represent physical locations with energy monitoring equipment.
+
+## List Installations
+
+Retrieve all installations for a given client:
+
+```rust
+use energiapro::EnergiaPro;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    let installations = energiapro
+        .installations
+        .list("client-id")
+        .await?;
+
+    for installation in installations {
+        println!("Installation ID: {}", installation.id);
+        println!("Address: {} {}", installation.street_address, installation.building_number);
+        println!("City: {} {}", installation.postal_code, installation.city);
+    }
+
+    Ok(())
+}
+```
+
+### Method Signature
+
+```rust src/resources/installations.rs:30-36
+pub async fn list(
+    &self,
+    client_id: impl AsRef<str>,
+) -> Result<Vec<Installation>, EnergiaProError>
+```
+
+### Parameters
+
+<ParamField path="client_id" type="impl AsRef<str>" required>
+  The client identifier to retrieve installations for. Cannot be empty or whitespace-only.
+</ParamField>
+
+### Returns
+
+Returns `Vec<Installation>` on success. Each `Installation` contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `String` | Unique installation identifier |
+| `street_name` | `String` | Street name |
+| `street_address` | `String` | Full street address |
+| `building_number` | `i64` | Building number |
+| `postal_code` | `String` | Postal code |
+| `city` | `String` | City name |
+
+## Installation Model
+
+The `Installation` struct represents a physical installation:
+
+```rust src/models/installation.rs:8-21
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Installation {
+    #[serde(alias = "insID")]
+    pub id: String,
+    #[serde(alias = "adrNomRueC")]
+    pub street_name: String,
+    #[serde(alias = "adrRueC")]
+    pub street_address: String,
+    #[serde(alias = "adrNumImm")]
+    pub building_number: i64,
+    #[serde(alias = "adrCPC")]
+    pub postal_code: String,
+    #[serde(alias = "adrLocaliteC")]
+    pub city: String,
+}
+```
+
+## Working with Installation Data
+
+### Display Installation Details
+
+```rust
+let installations = energiapro.installations.list("client-id").await?;
+
+for installation in installations {
+    println!(
+        "[{}] {} {}, {} {}",
+        installation.id,
+        installation.street_address,
+        installation.building_number,
+        installation.postal_code,
+        installation.city
+    );
+}
+```
+
+### Find a Specific Installation
+
+```rust
+let installations = energiapro.installations.list("client-id").await?;
+
+let target_installation = installations
+    .iter()
+    .find(|i| i.id == "INSTALLATION_ID_1")
+    .ok_or("Installation not found")?;
+
+println!("Found: {} in {}", target_installation.street_name, target_installation.city);
+```
+
+### Filter by City
+
+```rust
+let installations = energiapro.installations.list("client-id").await?;
+
+let geneva_installations: Vec<_> = installations
+    .into_iter()
+    .filter(|i| i.city.to_lowercase().contains("geneva"))
+    .collect();
+
+println!("Found {} installations in Geneva", geneva_installations.len());
+```
+
+## Error Handling
+
+The `list` method can fail for several reasons:
+
+```rust
+use energiapro::{EnergiaPro, EnergiaProError};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    match energiapro.installations.list("client-id").await {
+        Ok(installations) => {
+            println!("Retrieved {} installations", installations.len());
+        }
+        Err(EnergiaProError::InvalidArgument(msg)) => {
+            eprintln!("Invalid client_id: {}", msg);
+        }
+        Err(EnergiaProError::Api { code, message }) => {
+            eprintln!("API error {:?}: {}", code, message);
+        }
+        Err(e) => {
+            eprintln!("Request failed: {}", e);
+        }
+    }
+
+    Ok(())
+}
+```
+
+### Common Errors
+
+<Warning>
+  **InvalidArgument**: Returned when `client_id` is empty or contains only whitespace.
+</Warning>
+
+<Warning>
+  **Api (code: TokenInvalid)**: Returned when authentication fails. This typically indicates invalid credentials.
+</Warning>
+
+<Warning>
+  **Http**: Network errors, connection timeouts, or DNS failures.
+</Warning>
+
+## Complete Example
+
+```rust
+use energiapro::{EnergiaPro, Installation};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    let installations = energiapro
+        .installations
+        .list("client-id")
+        .await?;
+
+    if installations.is_empty() {
+        println!("No installations found");
+        return Ok(());
+    }
+
+    println!("Found {} installations:\n", installations.len());
+
+    for (idx, installation) in installations.iter().enumerate() {
+        println!("{}. Installation {}", idx + 1, installation.id);
+        println!("   Location: {}", installation.street_name);
+        println!("   Address: {} {}", installation.street_address, installation.building_number);
+        println!("   City: {} {}\n", installation.postal_code, installation.city);
+    }
+
+    Ok(())
+}
+```

@@ -1,0 +1,426 @@
+---
+title: Examples
+description: Real-world command-line examples for common tasks
+---
+
+This page provides practical examples of using the EnergiaPro CLI for common workflows and data export scenarios.
+
+## Basic Usage
+
+### List All Installations
+
+View all installations for a client in a formatted table:
+
+```bash
+energiapro installations CLIENT_123
+```
+
+**Output:**
+
+```
+id                  street_name      street_address        building_number  postal_code  city
+INST_001           Rue du Commerce   Rue du Commerce 12    12               1003         Lausanne
+INST_002           Avenue de la Gare Avenue de la Gare 45  45               1020         Renens
+```
+
+### Get Measurements for an Installation
+
+Fetch all available measurements:
+
+```bash
+energiapro measurements CLIENT_123 INST_001
+```
+
+**Output:**
+
+```
+client_id  installation_id  timestamp            index_m3   consumption_m3  consumption_kwh
+1          INST_001        2024-04-01 15:00:00  145506.00  77.10           798.45
+1          INST_001        2024-04-02 15:00:00  145595.00  89.30           924.80
+```
+
+## Date Filtering
+
+### Monthly Report
+
+Get measurements for a specific month:
+
+```bash
+energiapro measurements CLIENT_123 INST_001 \
+  --from 2024-03-01 \
+  --to 2024-03-31
+```
+
+### Year-to-Date Data
+
+Fetch all measurements from the beginning of the year:
+
+```bash
+energiapro measurements CLIENT_123 INST_001 \
+  --from 2024-01-01 \
+  --to $(date +%Y-%m-%d)
+```
+
+### Last 7 Days
+
+Get recent measurements using date calculations:
+
+```bash
+# macOS/BSD
+energiapro measurements CLIENT_123 INST_001 \
+  --from $(date -v-7d +%Y-%m-%d) \
+  --to $(date +%Y-%m-%d)
+
+# Linux
+energiapro measurements CLIENT_123 INST_001 \
+  --from $(date -d "7 days ago" +%Y-%m-%d) \
+  --to $(date +%Y-%m-%d)
+```
+
+## Data Export
+
+### Export to CSV
+
+Save installations to a CSV file:
+
+```bash
+energiapro installations CLIENT_123 --format csv > installations.csv
+```
+
+Export measurements with date range:
+
+```bash
+energiapro measurements CLIENT_123 INST_001 \
+  --from 2024-01-01 \
+  --to 2024-12-31 \
+  --format csv > yearly-consumption.csv
+```
+
+### Export to JSON
+
+Get installations as JSON:
+
+```bash
+energiapro installations CLIENT_123 -f json > installations.json
+```
+
+Pretty-print with jq:
+
+```bash
+energiapro installations CLIENT_123 -f json | jq .
+```
+
+### Export to Parquet
+
+Export measurements to Parquet for analytics:
+
+```bash
+energiapro measurements CLIENT_123 INST_001 \
+  --from 2024-01-01 \
+  --format parquet > measurements-2024.parquet
+```
+
+<Tip>
+  Parquet is the most efficient format for large datasets and analytics workflows.
+</Tip>
+
+## Advanced Workflows
+
+### Batch Export All Installations
+
+Export data for multiple installations:
+
+```bash batch-export.sh
+#!/bin/bash
+
+CLIENT_ID="CLIENT_123"
+OUTPUT_DIR="./data"
+
+mkdir -p "$OUTPUT_DIR"
+
+# Get list of installation IDs
+INSTALLATIONS=$(energiapro installations "$CLIENT_ID" -f json | jq -r '.[].id')
+
+# Export measurements for each installation
+for INST_ID in $INSTALLATIONS; do
+  echo "Exporting $INST_ID..."
+  energiapro measurements "$CLIENT_ID" "$INST_ID" \
+    --from 2024-01-01 \
+    --format parquet > "$OUTPUT_DIR/${INST_ID}.parquet"
+done
+
+echo "Export complete!"
+```
+
+### Daily Automated Backup
+
+Schedule daily exports with cron:
+
+```bash
+# Add to crontab (crontab -e)
+0 2 * * * /usr/local/bin/energiapro measurements CLIENT_123 INST_001 \
+  --from $(date -d "yesterday" +\%Y-\%m-\%d) \
+  --to $(date +\%Y-\%m-\%d) \
+  --format csv >> /var/backups/measurements-$(date +\%Y-\%m).csv
+```
+
+### Filter and Transform with jq
+
+Extract specific fields:
+
+```bash
+# Get only installation IDs and cities
+energiapro installations CLIENT_123 -f json | \
+  jq '.[] | {id: .id, city: .city}'
+```
+
+Filter measurements by consumption threshold:
+
+```bash
+# Get high-consumption periods (>900 kWh)
+energiapro measurements CLIENT_123 INST_001 -f json | \
+  jq '[.[] | select(.consumption_kwh > 900)]'
+```
+
+### Aggregate Statistics with DuckDB
+
+Calculate monthly consumption totals:
+
+```bash
+# Export to Parquet
+energiapro measurements CLIENT_123 INST_001 \
+  --from 2024-01-01 \
+  --to 2024-12-31 \
+  -f parquet > yearly.parquet
+
+# Query with DuckDB
+duckdb -c "
+SELECT 
+  DATE_TRUNC('month', timestamp::TIMESTAMP) as month,
+  COUNT(*) as readings,
+  SUM(consumption_kwh) as total_kwh,
+  AVG(consumption_kwh) as avg_kwh,
+  MAX(consumption_kwh) as max_kwh
+FROM 'yearly.parquet'
+GROUP BY month
+ORDER BY month;
+"
+```
+
+### Compare Multiple Installations
+
+Generate a comparison report:
+
+```bash compare-installations.sh
+#!/bin/bash
+
+CLIENT_ID="CLIENT_123"
+FROM_DATE="2024-01-01"
+TO_DATE="2024-12-31"
+
+echo "Installation,Total kWh,Average kWh,Max kWh"
+
+for INST_ID in INST_001 INST_002 INST_003; do
+  energiapro measurements "$CLIENT_ID" "$INST_ID" \
+    --from "$FROM_DATE" \
+    --to "$TO_DATE" \
+    -f parquet > "temp-${INST_ID}.parquet"
+  
+  STATS=$(duckdb -csv -c "
+    SELECT 
+      '$INST_ID' as installation,
+      ROUND(SUM(consumption_kwh), 2) as total_kwh,
+      ROUND(AVG(consumption_kwh), 2) as avg_kwh,
+      ROUND(MAX(consumption_kwh), 2) as max_kwh
+    FROM 'temp-${INST_ID}.parquet'
+  " | tail -n 1)
+  
+  echo "$STATS"
+  rm "temp-${INST_ID}.parquet"
+done
+```
+
+## Integration Examples
+
+<Tabs>
+  <Tab title="Python Pandas">
+    Load CLI output directly into pandas:
+
+    ```python analyze.py
+    import pandas as pd
+    import subprocess
+    import json
+    
+    # Fetch measurements as JSON
+    result = subprocess.run(
+        [
+            'energiapro', 'measurements', 
+            'CLIENT_123', 'INST_001',
+            '--from', '2024-01-01',
+            '--format', 'json'
+        ],
+        capture_output=True,
+        text=True
+    )
+    
+    # Load into DataFrame
+    data = json.loads(result.stdout)
+    df = pd.DataFrame(data)
+    
+    # Convert timestamp to datetime
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    
+    # Calculate daily totals
+    daily = df.groupby(df['timestamp'].dt.date)['consumption_kwh'].sum()
+    
+    print(daily)
+    ```
+  </Tab>
+
+  <Tab title="Polars">
+    Use Polars for fast data processing:
+
+    ```python process.py
+    import polars as pl
+    import subprocess
+    
+    # Export to Parquet
+    subprocess.run([
+        'energiapro', 'measurements',
+        'CLIENT_123', 'INST_001',
+        '--from', '2024-01-01',
+        '-f', 'parquet'
+    ], stdout=open('data.parquet', 'wb'))
+    
+    # Read with Polars
+    df = pl.read_parquet('data.parquet')
+    
+    # Calculate statistics
+    stats = df.select([
+        pl.col('consumption_kwh').mean().alias('avg_kwh'),
+        pl.col('consumption_kwh').sum().alias('total_kwh'),
+        pl.col('consumption_kwh').max().alias('max_kwh')
+    ])
+    
+    print(stats)
+    ```
+  </Tab>
+
+  <Tab title="Shell Script">
+    Create a monitoring script:
+
+    ```bash monitor.sh
+    #!/bin/bash
+    
+    CLIENT_ID="CLIENT_123"
+    INST_ID="INST_001"
+    THRESHOLD=1000
+    
+    # Get today's measurements
+    TODAY=$(date +%Y-%m-%d)
+    
+    energiapro measurements "$CLIENT_ID" "$INST_ID" \
+      --from "$TODAY" \
+      --to "$TODAY" \
+      -f json > today.json
+    
+    # Check for high consumption
+    HIGH_USAGE=$(jq -r ".[] | select(.consumption_kwh > $THRESHOLD) | .consumption_kwh" today.json)
+    
+    if [ ! -z "$HIGH_USAGE" ]; then
+      echo "ALERT: High consumption detected: $HIGH_USAGE kWh"
+      # Send notification (email, Slack, etc.)
+    fi
+    
+    rm today.json
+    ```
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+### Check Authentication
+
+Verify credentials are configured:
+
+```bash
+echo $ENERGIAPRO_USERNAME
+echo $ENERGIAPRO_SECRET_KEY
+```
+
+### Verbose Error Output
+
+If a command fails, check the error message:
+
+```bash
+energiapro installations CLIENT_123 2>&1 | tee error.log
+```
+
+### Test API Connectivity
+
+Test with increased timeout:
+
+```bash
+energiapro installations CLIENT_123 --timeout-secs 60
+```
+
+### Validate Output Format
+
+Ensure JSON output is valid:
+
+```bash
+energiapro installations CLIENT_123 -f json | jq empty
+```
+
+If successful, no output is shown. Errors indicate invalid JSON.
+
+## Performance Tips
+
+<Steps>
+  <Step title="Use Parquet for large datasets">
+    Parquet is the most efficient format for storage and processing:
+
+    ```bash
+    energiapro measurements CLIENT_123 INST_001 \
+      --from 2024-01-01 \
+      -f parquet > data.parquet
+    ```
+  </Step>
+
+  <Step title="Filter dates at query time">
+    Use `--from` and `--to` to reduce data transfer:
+
+    ```bash
+    energiapro measurements CLIENT_123 INST_001 \
+      --from 2024-11-01 \
+      --to 2024-11-30
+    ```
+  </Step>
+
+  <Step title="Increase timeout for large requests">
+    If fetching lots of data, extend the timeout:
+
+    ```bash
+    energiapro measurements CLIENT_123 INST_001 \
+      --from 2020-01-01 \
+      --timeout-secs 120
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Commands Reference" icon="book" href="/cli/commands">
+    Full command documentation
+  </Card>
+  <Card title="Output Formats" icon="file-export" href="/cli/output-formats">
+    Learn about all output formats
+  </Card>
+  <Card title="SDK Documentation" icon="code" href="/sdk/quickstart">
+    Integrate programmatically with the SDK
+  </Card>
+  <Card title="API Reference" icon="server" href="/api-reference">
+    Explore the underlying API
+  </Card>
+</CardGroup>

@@ -1,0 +1,406 @@
+---
+title: Measurements Resource
+description: Retrieve measurement data from the EnergiaPro API
+---
+
+## Overview
+
+The `measurements` resource provides access to energy consumption measurements. The SDK offers multiple methods for querying measurements with different date filtering options.
+
+## Measurement Scope
+
+All measurement methods require a `MeasurementScope` parameter:
+
+```rust
+use energiapro::MeasurementScope;
+
+// Standard LPN JSON payload (default)
+let scope = MeasurementScope::LpnJson;
+
+// Extended GC+ JSON payload
+let scope = MeasurementScope::GcPlusJson;
+
+// Custom scope for future API versions
+let scope = MeasurementScope::Custom("custom-scope".to_string());
+```
+
+<Note>
+  `MeasurementScope::LpnJson` is the default and most commonly used scope.
+</Note>
+
+## Get All Measurements
+
+Retrieve all measurements for an installation:
+
+```rust src/resources/measurements.rs:56-66
+pub async fn all(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+### Example
+
+```rust examples/measurements.rs:12-26
+async fn fetch_all_measurements() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a new EnergiaPro client
+    let energiapro = EnergiaPro::new("<USERNAME>", "<SECRET_KEY>")?;
+
+    // Fetch measurements from the API
+    let measurements = energiapro
+        .measurements
+        .all("client-id", "installation-id", MeasurementScope::LpnJson)
+        .await?;
+
+    // Print out some details about the retrieved measurements
+    println!("retrieved {} measurements", measurements.len());
+
+    Ok(())
+}
+```
+
+<Warning>
+  This method retrieves all measurements for the installation, which may result in a large amount of data. Consider using date-filtered methods for better performance.
+</Warning>
+
+## Get Measurements for a Date
+
+Retrieve measurements for a specific date:
+
+```rust src/resources/measurements.rs:69-84
+pub async fn for_date(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    date: impl DateInput,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+### Example
+
+```rust examples/measurements.rs:29-51
+async fn fetch_measurements_for_date() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a new EnergiaPro client
+    let energiapro = EnergiaPro::new("<USERNAME>", "<SECRET_KEY>")?;
+
+    // Fetch measurements from the API for a specific date
+    let measurements = energiapro
+        .measurements
+        .for_date(
+            "client-id",
+            "installation-id",
+            MeasurementScope::LpnJson,
+            "2024-01-15",
+        )
+        .await?;
+
+    // Print out some details about the retrieved measurements
+    println!(
+        "retrieved {} measurements for January 15, 2024",
+        measurements.len()
+    );
+
+    Ok(())
+}
+```
+
+### Date Input Formats
+
+The `DateInput` trait accepts multiple formats:
+
+```rust
+use chrono::NaiveDate;
+
+// String slice
+let measurements = energiapro
+    .measurements
+    .for_date("client-id", "installation-id", MeasurementScope::LpnJson, "2024-01-15")
+    .await?;
+
+// String
+let date_string = "2024-01-15".to_string();
+let measurements = energiapro
+    .measurements
+    .for_date("client-id", "installation-id", MeasurementScope::LpnJson, date_string)
+    .await?;
+
+// NaiveDate from chrono
+let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
+let measurements = energiapro
+    .measurements
+    .for_date("client-id", "installation-id", MeasurementScope::LpnJson, date)
+    .await?;
+```
+
+<Note>
+  String dates must use the `YYYY-MM-DD` format.
+</Note>
+
+## Get Measurements for Date Range
+
+Retrieve measurements between two dates (inclusive):
+
+```rust src/resources/measurements.rs:87-101
+pub async fn for_date_range(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    from: impl DateInput,
+    to: impl DateInput,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+### Example
+
+```rust examples/measurements.rs:54-77
+async fn fetch_measurements_with_date_range() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a new EnergiaPro client
+    let energiapro = EnergiaPro::new("<USERNAME>", "<SECRET_KEY>")?;
+
+    // Fetch measurements from the API with a date range
+    let measurements = energiapro
+        .measurements
+        .for_date_range(
+            "client-id",
+            "installation-id",
+            MeasurementScope::LpnJson,
+            "2024-01-01",
+            "2024-01-31",
+        )
+        .await?;
+
+    // Print out some details about the retrieved measurements
+    println!(
+        "retrieved {} measurements for January 2024",
+        measurements.len()
+    );
+
+    Ok(())
+}
+```
+
+## Get Measurements Since Date
+
+Retrieve measurements from a date onwards:
+
+```rust src/resources/measurements.rs:104-116
+pub async fn since(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    date: impl DateInput,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+### Example
+
+```rust
+let measurements = energiapro
+    .measurements
+    .since(
+        "client-id",
+        "installation-id",
+        MeasurementScope::LpnJson,
+        "2024-01-01",
+    )
+    .await?;
+
+println!("Retrieved {} measurements since January 1, 2024", measurements.len());
+```
+
+## Get Measurements Up To Date
+
+Retrieve measurements up to a specified date:
+
+```rust src/resources/measurements.rs:119-131
+pub async fn up_to(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    date: impl DateInput,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+### Example
+
+```rust
+let measurements = energiapro
+    .measurements
+    .up_to(
+        "client-id",
+        "installation-id",
+        MeasurementScope::LpnJson,
+        "2024-01-31",
+    )
+    .await?;
+
+println!("Retrieved {} measurements up to January 31, 2024", measurements.len());
+```
+
+## Advanced: Custom Date Filtering
+
+For maximum flexibility, use the `get` method with optional date parameters:
+
+```rust src/resources/measurements.rs:22-46
+pub async fn get(
+    &self,
+    client_id: impl AsRef<str>,
+    installation_id: impl AsRef<str>,
+    scope: impl Into<MeasurementScope>,
+    from: Option<impl DateInput>,
+    to: Option<impl DateInput>,
+) -> Result<Vec<Measurement>, EnergiaProError>
+```
+
+### Example
+
+```rust
+// No date filtering (equivalent to .all())
+let all = energiapro
+    .measurements
+    .get::<&str, &str>("client-id", "installation-id", MeasurementScope::LpnJson, None, None)
+    .await?;
+
+// Only 'from' date (equivalent to .since())
+let since = energiapro
+    .measurements
+    .get("client-id", "installation-id", MeasurementScope::LpnJson, Some("2024-01-01"), None::<&str>)
+    .await?;
+
+// Only 'to' date (equivalent to .up_to())
+let up_to = energiapro
+    .measurements
+    .get("client-id", "installation-id", MeasurementScope::LpnJson, None::<&str>, Some("2024-01-31"))
+    .await?;
+
+// Both dates (equivalent to .for_date_range())
+let range = energiapro
+    .measurements
+    .get("client-id", "installation-id", MeasurementScope::LpnJson, Some("2024-01-01"), Some("2024-01-31"))
+    .await?;
+```
+
+## Measurement Model
+
+Each measurement contains the following fields:
+
+```rust src/models/measurement.rs:7-25
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Measurement {
+    /// Numeric client identifier.
+    pub client_id: u64,
+    /// Installation identifier (`num_inst` in API payloads).
+    #[serde(alias = "num_inst")]
+    pub installation_id: String,
+    /// Measurement timestamp as returned by the API.
+    #[serde(alias = "date")]
+    pub timestamp: String,
+    /// Meter index in cubic meters.
+    #[serde(alias = "index_m3")]
+    pub index_m3: f64,
+    /// Consumed volume in cubic meters for the interval.
+    #[serde(alias = "quantite_m3")]
+    pub consumption_m3: f64,
+    /// Consumed energy in kilowatt-hours for the interval.
+    #[serde(alias = "consommation_kw_h")]
+    pub consumption_kwh: f64,
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `client_id` | `u64` | Numeric client identifier |
+| `installation_id` | `String` | Installation identifier |
+| `timestamp` | `String` | Measurement timestamp (e.g., "2024-04-01 15:00:00") |
+| `index_m3` | `f64` | Meter index in cubic meters |
+| `consumption_m3` | `f64` | Consumed volume in cubic meters |
+| `consumption_kwh` | `f64` | Consumed energy in kilowatt-hours |
+
+## Working with Measurement Data
+
+### Calculate Total Consumption
+
+```rust
+let measurements = energiapro
+    .measurements
+    .for_date_range(
+        "client-id",
+        "installation-id",
+        MeasurementScope::LpnJson,
+        "2024-01-01",
+        "2024-01-31",
+    )
+    .await?;
+
+let total_kwh: f64 = measurements
+    .iter()
+    .map(|m| m.consumption_kwh)
+    .sum();
+
+let total_m3: f64 = measurements
+    .iter()
+    .map(|m| m.consumption_m3)
+    .sum();
+
+println!("Total consumption: {:.2} kWh ({:.2} m³)", total_kwh, total_m3);
+```
+
+### Find Peak Consumption
+
+```rust
+let measurements = energiapro
+    .measurements
+    .for_date_range(
+        "client-id",
+        "installation-id",
+        MeasurementScope::LpnJson,
+        "2024-01-01",
+        "2024-01-31",
+    )
+    .await?;
+
+let peak = measurements
+    .iter()
+    .max_by(|a, b| a.consumption_kwh.partial_cmp(&b.consumption_kwh).unwrap())
+    .ok_or("No measurements found")?;
+
+println!(
+    "Peak consumption: {:.2} kWh at {}",
+    peak.consumption_kwh,
+    peak.timestamp
+);
+```
+
+### Group by Day
+
+```rust
+use std::collections::HashMap;
+
+let measurements = energiapro
+    .measurements
+    .for_date_range(
+        "client-id",
+        "installation-id",
+        MeasurementScope::LpnJson,
+        "2024-01-01",
+        "2024-01-31",
+    )
+    .await?;
+
+let mut daily_totals: HashMap<String, f64> = HashMap::new();
+
+for measurement in measurements {
+    let date = measurement.timestamp.split(' ').next().unwrap_or("");
+    *daily_totals.entry(date.to_string()).or_insert(0.0) += measurement.consumption_kwh;
+}
+
+for (date, total) in daily_totals {
+    println!("{}: {:.2} kWh", date, total);
+}
+```

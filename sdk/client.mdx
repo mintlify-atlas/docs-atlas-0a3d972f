@@ -1,0 +1,200 @@
+---
+title: Client Configuration
+description: Create and configure the EnergiaPro client
+---
+
+## Creating a Client
+
+The `EnergiaPro` struct is the main entry point for the SDK. It provides access to all API resources through its `installations` and `measurements` properties.
+
+### Default Configuration
+
+Create a client with default settings:
+
+```rust
+use energiapro::EnergiaPro;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("your-username", "your-secret-key")?;
+    Ok(())
+}
+```
+
+Default configuration:
+- **Base URL**: `https://web2.holdigaz.ch/espace-client-api/api`
+- **Timeout**: 30 seconds
+- **TLS**: rustls with secure defaults
+
+### Custom Configuration
+
+Customize client behavior using `ClientOptions`:
+
+```rust
+use energiapro::{EnergiaPro, ClientOptions};
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let options = ClientOptions::default()
+        .with_timeout(Duration::from_secs(60))
+        .with_base_url("https://custom-api.example.com/api");
+
+    let energiapro = EnergiaPro::with_options(
+        "your-username",
+        "your-secret-key",
+        options
+    )?;
+
+    Ok(())
+}
+```
+
+## Client Options
+
+### Timeout
+
+Set a custom timeout for all HTTP requests:
+
+```rust
+use energiapro::ClientOptions;
+use std::time::Duration;
+
+let options = ClientOptions::default()
+    .with_timeout(Duration::from_secs(120));
+```
+
+<Note>
+  The timeout applies to the entire request, including connection establishment, request transmission, and response receipt.
+</Note>
+
+### Base URL
+
+Override the default API base URL:
+
+```rust
+use energiapro::ClientOptions;
+
+let options = ClientOptions::default()
+    .with_base_url("https://custom-endpoint.example.com/api");
+```
+
+<Warning>
+  The base URL must use HTTPS. The SDK will reject non-secure URLs to protect your credentials.
+</Warning>
+
+### Chaining Options
+
+Combine multiple configuration options:
+
+```rust
+use energiapro::{EnergiaPro, ClientOptions};
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let options = ClientOptions::default()
+        .with_base_url("https://api.example.com")
+        .with_timeout(Duration::from_secs(90));
+
+    let energiapro = EnergiaPro::with_options(
+        "username",
+        "secret_key",
+        options
+    )?;
+
+    Ok(())
+}
+```
+
+## Accessing Resources
+
+The `EnergiaPro` client exposes two resource properties:
+
+### Installations Resource
+
+Access installation-related operations:
+
+```rust
+let installations = energiapro.installations.list("client-id").await?;
+```
+
+See [Installations](/sdk/installations) for all available methods.
+
+### Measurements Resource
+
+Access measurement-related operations:
+
+```rust
+use energiapro::MeasurementScope;
+
+let measurements = energiapro
+    .measurements
+    .all("client-id", "installation-id", MeasurementScope::LpnJson)
+    .await?;
+```
+
+See [Measurements](/sdk/measurements) for all available methods.
+
+## Error Handling
+
+All SDK methods return `Result<T, EnergiaProError>`. Handle errors appropriately:
+
+```rust
+use energiapro::{EnergiaPro, EnergiaProError};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let energiapro = EnergiaPro::new("username", "secret_key")?;
+
+    match energiapro.installations.list("client-id").await {
+        Ok(installations) => {
+            for installation in installations {
+                println!("Installation: {}", installation.id);
+            }
+        }
+        Err(EnergiaProError::InvalidArgument(msg)) => {
+            eprintln!("Invalid argument: {}", msg);
+        }
+        Err(EnergiaProError::Http(err)) => {
+            eprintln!("HTTP error: {}", err);
+        }
+        Err(EnergiaProError::Api { code, message }) => {
+            eprintln!("API error {:?}: {}", code, message);
+        }
+        Err(e) => {
+            eprintln!("Unexpected error: {}", e);
+        }
+    }
+
+    Ok(())
+}
+```
+
+## Error Types
+
+The `EnergiaProError` enum covers all failure modes:
+
+| Variant | Description |
+|---------|-------------|
+| `InvalidArgument` | Client-side validation failure |
+| `SecretKeyGeneration` | Failed to hash the secret key |
+| `BlockingTaskJoin` | Internal task failure |
+| `Http` | Network or transport error |
+| `HttpStatus` | Non-success HTTP status |
+| `Json` | JSON parsing failure |
+| `MissingToken` | Authentication response missing token |
+| `Api` | Structured API error response |
+
+## Cloning the Client
+
+The client is cheaply cloneable thanks to internal `Arc` usage:
+
+```rust
+let energiapro = EnergiaPro::new("username", "secret_key")?;
+let energiapro_clone = energiapro.clone(); // Shares the same underlying client
+```
+
+<Note>
+  Cloning creates a new handle to the same underlying HTTP client and token manager. All clones share authentication state.
+</Note>

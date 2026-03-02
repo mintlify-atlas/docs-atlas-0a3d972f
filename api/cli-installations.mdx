@@ -1,0 +1,172 @@
+---
+title: 'energiapro installations'
+description: 'Fetch and print installations for one client'
+---
+
+## Usage
+
+```bash
+energiapro installations [OPTIONS] <CLIENT_ID>
+```
+
+Fetch installations for one client and write formatted output to stdout. The API response must be a top-level JSON array of objects so it can be loaded into a Polars DataFrame.
+
+## Arguments
+
+<ParamField path="CLIENT_ID" type="string" required>
+  EnergiaPro client identifier
+</ParamField>
+
+## Options
+
+<ParamField path="--username" type="string" required>
+  EnergiaPro API username
+  
+  **Short flag:** `-u`
+  
+  **Environment variable:** `ENERGIAPRO_USERNAME`
+</ParamField>
+
+<ParamField path="--secret-key" type="string" required>
+  EnergiaPro API secret key
+  
+  **Short flag:** `-k`
+  
+  **Environment variable:** `ENERGIAPRO_SECRET_KEY`
+</ParamField>
+
+<ParamField path="--format" type="enum" default="text">
+  Output format
+  
+  **Short flag:** `-f`
+  
+  **Possible values:**
+  - `text` - Human-readable table format
+  - `json` - JSON array format
+  - `jsonl` - JSON Lines format (one object per line)
+  - `csv` - CSV format with headers
+  - `parquet` - Apache Parquet binary format
+</ParamField>
+
+<ParamField path="--timeout-secs" type="number" default="30">
+  HTTP timeout in seconds
+</ParamField>
+
+<ParamField path="--base-url" type="string">
+  HTTPS base API URL (or ENERGIAPRO_BASE_URL)
+  
+  **Environment variable:** `ENERGIAPRO_BASE_URL`
+</ParamField>
+
+## Environment Variables
+
+The following environment variables can be used instead of command-line flags:
+
+- `ENERGIAPRO_USERNAME` - API username (alternative to `--username`)
+- `ENERGIAPRO_SECRET_KEY` - API secret key (alternative to `--secret-key`)
+- `ENERGIAPRO_BASE_URL` - Base API URL (alternative to `--base-url`)
+
+## Output Fields
+
+The command returns the following fields for each installation:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Installation identifier |
+| `street_name` | string | Street name |
+| `street_address` | string | Full street address |
+| `building_number` | number | Building number |
+| `postal_code` | string | Postal code |
+| `city` | string | City name |
+
+## Examples
+
+### Basic usage with text output
+
+```bash
+energiapro installations \
+  --username "your-username" \
+  --secret-key "your-secret-key" \
+  CLIENT_123
+```
+
+**Output:**
+
+```
+id                street_name      street_address         building_number  postal_code  city
+INSTALLATION_1   STREET_NAME_1    STREET_ADDRESS_1       3                12345        CITY_1
+INSTALLATION_2   STREET_NAME_2    STREET_ADDRESS_2       10               67890        CITY_2
+```
+
+### Export to CSV
+
+```bash
+energiapro installations \
+  --format csv \
+  CLIENT_123 > installations.csv
+```
+
+**Output:**
+
+```csv
+id,street_name,street_address,building_number,postal_code,city
+INSTALLATION_1,STREET_NAME_1,STREET_ADDRESS_1,3,12345,CITY_1
+INSTALLATION_2,STREET_NAME_2,STREET_ADDRESS_2,10,67890,CITY_2
+```
+
+### Export to JSON
+
+```bash
+energiapro installations \
+  --format json \
+  CLIENT_123 > installations.json
+```
+
+**Output:**
+
+```json
+[
+  {
+    "id": "INSTALLATION_1",
+    "street_name": "STREET_NAME_1",
+    "street_address": "STREET_ADDRESS_1",
+    "building_number": 3,
+    "postal_code": "12345",
+    "city": "CITY_1"
+  },
+  {
+    "id": "INSTALLATION_2",
+    "street_name": "STREET_NAME_2",
+    "street_address": "STREET_ADDRESS_2",
+    "building_number": 10,
+    "postal_code": "67890",
+    "city": "CITY_2"
+  }
+]
+```
+
+### Using environment variables
+
+```bash
+export ENERGIAPRO_USERNAME="your-username"
+export ENERGIAPRO_SECRET_KEY="your-secret-key"
+
+energiapro installations CLIENT_123
+```
+
+### Custom timeout and base URL
+
+```bash
+energiapro installations \
+  --timeout-secs 60 \
+  --base-url "https://custom.api.example.com" \
+  CLIENT_123
+```
+
+### Export to Parquet for data analysis
+
+```bash
+energiapro installations \
+  --format parquet \
+  CLIENT_123 > installations.parquet
+```
