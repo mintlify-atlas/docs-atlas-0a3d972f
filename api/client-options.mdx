@@ -42,7 +42,7 @@ impl Default for ClientOptions {
 #### Example
 
 ```rust
-use energiapro_sdk::ClientOptions;
+use energiapro::ClientOptions;
 
 let options = ClientOptions::default();
 ```
@@ -66,7 +66,7 @@ pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self
 #### Example
 
 ```rust
-use energiapro_sdk::ClientOptions;
+use energiapro::ClientOptions;
 
 let options = ClientOptions::default()
     .with_base_url("https://api.custom-domain.com/v1");
@@ -91,7 +91,7 @@ pub fn with_timeout(mut self, timeout: Duration) -> Self
 #### Example
 
 ```rust
-use energiapro_sdk::ClientOptions;
+use energiapro::ClientOptions;
 use std::time::Duration;
 
 let options = ClientOptions::default()
@@ -101,7 +101,7 @@ let options = ClientOptions::default()
 ## Complete Example
 
 ```rust
-use energiapro_sdk::{EnergiaPro, ClientOptions};
+use energiapro::{EnergiaPro, ClientOptions};
 use std::time::Duration;
 
 #[tokio::main]

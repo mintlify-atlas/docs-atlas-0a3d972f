@@ -38,7 +38,7 @@ pub fn new(
 #### Example
 
 ```rust
-use energiapro_sdk::EnergiaPro;
+use energiapro::EnergiaPro;
 
 let client = EnergiaPro::new("your-username", "your-secret-key")?;
 ```
@@ -78,7 +78,7 @@ pub fn with_options(
 #### Example
 
 ```rust
-use energiapro_sdk::{EnergiaPro, ClientOptions};
+use energiapro::{EnergiaPro, ClientOptions};
 use std::time::Duration;
 
 let options = ClientOptions::default()
@@ -106,7 +106,7 @@ The `EnergiaPro` struct provides access to API resources through its public fiel
 ## Complete Example
 
 ```rust
-use energiapro_sdk::{EnergiaPro, MeasurementScope};
+use energiapro::{EnergiaPro, MeasurementScope};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

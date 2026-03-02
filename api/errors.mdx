@@ -99,7 +99,7 @@ pub enum EnergiaProError {
 ### Example: Error Handling
 
 ```rust
-use energiapro_sdk::{EnergiaPro, EnergiaProError};
+use energiapro::{EnergiaPro, EnergiaProError};
 
 #[tokio::main]
 async fn main() {
@@ -254,7 +254,7 @@ pub fn as_str(&self) -> &str
 ### Example
 
 ```rust
-use energiapro_sdk::{EnergiaPro, EnergiaProError, ApiErrorCode};
+use energiapro::{EnergiaPro, EnergiaProError, ApiErrorCode};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

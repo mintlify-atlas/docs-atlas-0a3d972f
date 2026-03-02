@@ -62,7 +62,7 @@ Converts an owned string to a `MeasurementScope`. Known values are mapped to the
 ### Example
 
 ```rust
-use energiapro_sdk::{EnergiaPro, MeasurementScope};
+use energiapro::{EnergiaPro, MeasurementScope};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -122,7 +122,7 @@ The `DateInput` trait is implemented for the following types:
 ### Example with NaiveDate
 
 ```rust
-use energiapro_sdk::{EnergiaPro, MeasurementScope};
+use energiapro::{EnergiaPro, MeasurementScope};
 use chrono::NaiveDate;
 
 #[tokio::main]
@@ -147,7 +147,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Example with String
 
 ```rust
-use energiapro_sdk::{EnergiaPro, MeasurementScope};
+use energiapro::{EnergiaPro, MeasurementScope};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
