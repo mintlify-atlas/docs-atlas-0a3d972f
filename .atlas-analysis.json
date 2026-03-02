@@ -1,0 +1,97 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "EnergiaPro Toolkit",
+  "projectDescription": "Fast Rust SDK and CLI for the EnergiaPro API",
+  "theme": "aspen",
+  "primaryColor": "#CE422B",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "SDK",
+            "pages": [
+              "sdk/installation",
+              "sdk/authentication",
+              "sdk/client",
+              "sdk/installations",
+              "sdk/measurements",
+              "sdk/examples"
+            ]
+          },
+          {
+            "group": "CLI",
+            "pages": [
+              "cli/installation",
+              "cli/authentication",
+              "cli/commands",
+              "cli/output-formats",
+              "cli/examples"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "SDK Reference",
+            "pages": [
+              "api/energiapro",
+              "api/client-options",
+              "api/installations-resource",
+              "api/measurements-resource",
+              "api/models",
+              "api/types",
+              "api/errors"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "api/cli-installations",
+              "api/cli-measurements"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Async Rust SDK for EnergiaPro API integration",
+    "CLI tool for data export in CSV, JSON, JSONL, and Parquet formats",
+    "Automatic authentication and token management",
+    "Type-safe models for installations and measurements",
+    "Flexible date filtering and querying",
+    "Published to crates.io for easy integration"
+  ],
+  "publicApiSurface": [
+    "EnergiaPro::new",
+    "EnergiaPro::with_options",
+    "installations.list",
+    "measurements.all",
+    "measurements.get",
+    "measurements.for_date",
+    "measurements.for_date_range",
+    "measurements.since",
+    "measurements.up_to",
+    "Installation",
+    "Measurement",
+    "MeasurementScope",
+    "ClientOptions",
+    "EnergiaProError",
+    "ApiErrorCode",
+    "energiapro installations",
+    "energiapro measurements"
+  ]
+}
